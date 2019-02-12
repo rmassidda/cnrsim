@@ -35,7 +35,7 @@ int main(int argc, char **argv){
             printf("Unpack error");
             return -1;
         }
-        printf("%d %d:",line->pos, line->n_allele);
+        printf("%d",line->pos, line->n_allele);
         for (int i = 0; i < line->n_allele; i++){
             printf("\t%s", line->d.allele[i]);
         }
