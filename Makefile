@@ -1,3 +1,6 @@
+e01: experiment_01.c
+	cc -Wall -lhts -o $@ $< 
+
 example: example.c fileManager.o 
 	cc -Wall -o example example.c fileManager.o
 	         
