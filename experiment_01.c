@@ -23,27 +23,27 @@ int main(int argc, char **argv){
     if ( hdr == NULL ){
         return -1;
     } 
-    // Struct for storing each record
-    bcf1_t *rec = bcf_init();
-    if (rec == NULL){
+    // Struct for storing each line
+    bcf1_t *line = bcf_init();
+    if (line == NULL){
         return -1;
     }
-    // Iteration on the record set
-    while (bcf_read(inf, hdr, rec) == 0){
+    // Iteration on the line set
+    while (bcf_read(inf, hdr, line) == 0){
         // Unpack 'till ALT 
-        if (bcf_unpack( rec, BCF_UN_STR) != 0){
+        if (bcf_unpack( line, BCF_UN_STR) != 0){
             printf("Unpack error");
             return -1;
         }
-        printf("%d %d:",rec->pos, rec->n_allele);
-        for (int i = 0; i < rec->n_allele; i++){
-            printf("\t%s", rec->d.allele[i]);
+        printf("%d %d:",line->pos, line->n_allele);
+        for (int i = 0; i < line->n_allele; i++){
+            printf("\t%s", line->d.allele[i]);
         }
         printf("\n");
     }
 
 
-    bcf_destroy(rec);
+    bcf_destroy(line);
     bcf_hdr_destroy(hdr);
     bcf_close(inf);
 }
