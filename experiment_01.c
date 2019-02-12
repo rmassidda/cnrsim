@@ -28,10 +28,10 @@ int main(int argc, char **argv){
     if (rec == NULL){
         return -1;
     }
-    int record = 1;
     // Iteration on the record set
     while (bcf_read(inf, hdr, rec) == 0){
-        if (bcf_unpack(rec,record) != 0){
+        // Unpack 'till ALT 
+        if (bcf_unpack( rec, BCF_UN_STR) != 0){
             printf("Unpack error");
             return -1;
         }
@@ -40,7 +40,6 @@ int main(int argc, char **argv){
             printf("\t%s", rec->d.allele[i]);
         }
         printf("\n");
-        record++;
     }
 
 
