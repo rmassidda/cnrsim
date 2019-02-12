@@ -19,12 +19,12 @@ int main(int argc, char **argv){
     // Open File
     htsFile * inf = bcf_open (argv[1], "r" );
     // Read of VCF header
-    bcf_hdr_t *hdr = bcf_hdr_read(inf);
+    bcf_hdr_t * hdr = bcf_hdr_read(inf);
     if ( hdr == NULL ){
         return -1;
     } 
     // Struct for storing each line
-    bcf1_t *line = bcf_init();
+    bcf1_t * line = bcf_init();
     if (line == NULL){
         return -1;
     }
@@ -35,13 +35,12 @@ int main(int argc, char **argv){
             printf("Unpack error");
             return -1;
         }
-        printf("%d",line->pos, line->n_allele);
+        printf("%d", line->pos);
         for (int i = 0; i < line->n_allele; i++){
             printf("\t%s", line->d.allele[i]);
         }
         printf("\n");
     }
-
 
     bcf_destroy(line);
     bcf_hdr_destroy(hdr);
