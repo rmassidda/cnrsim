@@ -35,11 +35,9 @@ int main(int argc, char **argv){
             printf("Unpack error");
             return -1;
         }
-        printf("%d",rec->pos);
-        int i = 0;
-        while ( rec->d.allele[i] != NULL ){
+        printf("%d %d:",rec->pos, rec->n_allele);
+        for (int i = 0; i < rec->n_allele; i++){
             printf("\t%s", rec->d.allele[i]);
-            i++;
         }
         printf("\n");
         record++;
