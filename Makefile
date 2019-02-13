@@ -1,11 +1,18 @@
+objects = e00 e01 e02
+
+experiments: $(objects)
+
+e00: experiment_00.c fileManager.o 
+	cc -Wall -o $@ $^
+
 e01: experiment_01.c
 	cc -Wall -g -lhts -o $@ $< 
 
-example: example.c fileManager.o 
-	cc -Wall -o example example.c fileManager.o
+e02: experiment_02.c
+	cc -Wall -g -lhts -o $@ $< 
 	         
-fileManager.o: lib/fileManager.h lib/common.h 
-	cc -Wall -c lib/fileManager.c
+fileManager.o: fileManager.h common.h 
 
+.PHONY: clean
 clean:
-	rm *.o example
+	-rm $(objects) *.o

@@ -45,4 +45,5 @@ int main(int argc, char **argv){
     bcf_destroy(line);
     bcf_hdr_destroy(hdr);
     bcf_close(inf);
+    return 0;
 }
