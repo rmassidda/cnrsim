@@ -16,6 +16,9 @@ struct sequence_t *seq;
 int main(int argc, char **argv){
     int fa_start = 0;
     int fa_limit = 0;
+    // TOFIX: 1024 is totally arbitrary
+    char fa_ref[1024];
+    int divergence = 0;
 
     // Filenames from argument
     if (argc != 3){
@@ -63,12 +66,16 @@ int main(int argc, char **argv){
           fa_start = fa_limit;
           fa_limit += seq->sequence_size;
         }
-        for(int i=0; i < strlen(line->d.allele[0]); i++){
-            printf("%c", seq->sequence[line->pos + fa_start + i]);
+        sprintf(fa_ref,
+            "%.*s",
+            (int)strlen(line->d.allele[0]), 
+            seq->sequence + line->pos + fa_start);
+        printf("%s\n",fa_ref);
+        if (strcmp(line->d.allele[0], fa_ref) != 0 ){
+            divergence++;
         }
-        printf("\n");
     }
-
+    printf("Divergence: %d\n", divergence);
     // Cleanup
     bcf_destroy(line);
     bcf_hdr_destroy(hdr);
