@@ -1,4 +1,4 @@
-objects = e00 e01 e02 e03
+objects = e00 e01 e02 e03 e04
 
 experiments: $(objects)
 
@@ -12,6 +12,9 @@ e02: experiment_02.c
 	cc -Wall -g -lhts -o $@ $< 
 	         
 e03: experiment_03.c fileManager.o
+	cc -Wall -g -lhts -o $@ $^ 
+
+e04: experiment_04.c fileManager.o
 	cc -Wall -g -lhts -o $@ $^ 
 
 fileManager.o: fileManager.h common.h 
