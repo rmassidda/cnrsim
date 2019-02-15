@@ -5,7 +5,7 @@
 #include "fileManager.h"
 #include "variator.h"
 
-#define ALL_N 2
+#define ALL_N 1
 
 allele_t * allele_init(long int size){
     allele_t * allele = malloc((sizeof(struct allele_t)));
@@ -64,6 +64,7 @@ int main(int argc, char **argv){
         allele[i] = allele_init( seq->sequence_size );
     }
 
+    printf ( "REF\tVAR\tALL\tOFF\tDNA\n");
     // Fino alla fine del VCF
     while (bcf_read(inf, hdr, line) == 0){
         // Lettura della linea
@@ -75,7 +76,7 @@ int main(int argc, char **argv){
         distance = line->pos - ref_pos;
         // Per ogni allele
         for ( int i = 0; i < ALL_N; i++ ){
-            if ( distance > 0 ){
+            if ( distance >= 0 ){
                 // Copia in blocco [ref_pos, var_pos)
                 // dal reference all'allele
                 memcpy( 
@@ -86,7 +87,12 @@ int main(int argc, char **argv){
                 // Incrementa ref_pos e all_pos
                 allele[i]->pos += distance;
             }
-            printf ( "%ld\t%d\t%ld\t%ld\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off );
+            else{
+                // In questo ramo bisognerebbe fare rewind
+                // e controllare che si possano avere variazioni
+                continue;
+            }
+            printf ( "%ld\t%d\t%ld\t%ld\t%s\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off, line->d.allele[i]);
             assert ( line->pos == allele[i]->pos + allele[i]->off );
             // Se si decide di inserire la variazione e quale
             // TODO: ad ora inseriamo sempre e solo la prima
