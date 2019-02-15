@@ -1,6 +1,9 @@
-objects = e00 e01 e02 e03 e04
+exp = e00 e01 e02 e03 e04
 
-experiments: $(objects)
+variator: variator.c fileManager.o
+	cc -Wall -g -lhts -lm -o $@ $^
+
+experiments: $(exp)
 
 e00: experiment_00.c fileManager.o 
 	cc -Wall -o $@ $^
@@ -21,4 +24,4 @@ fileManager.o: fileManager.h common.h
 
 .PHONY: clean
 clean:
-	-rm $(objects) *.o
+	-rm $(exp) variator *.o
