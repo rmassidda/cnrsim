@@ -36,7 +36,8 @@ int main(int argc, char **argv){
 
     // Parse arguments
     if ( argc != 4 ){
-        printf("usage: variator vcf_filename fasta_filename output_filename");
+        printf("usage: variator vcf_filename fasta_filename output_filename\n");
+        exit (EXIT_FAILURE);
     }
 
     // VCF file
@@ -85,6 +86,7 @@ int main(int argc, char **argv){
                 // Incrementa ref_pos e all_pos
                 allele[i]->pos += distance;
             }
+            printf ( "%ld\t%d\t%ld\t%ld\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off );
             assert ( line->pos == allele[i]->pos + allele[i]->off );
             // Se si decide di inserire la variazione e quale
             // TODO: ad ora inseriamo sempre e solo la prima
@@ -106,7 +108,7 @@ int main(int argc, char **argv){
             allele[i]->pos += strlen(subseq);
         }
         // Aggiornamento della posizione sul reference
-        ref_pos += distance;
+        ref_pos += distance + strlen(line->d.allele[0]);
     }
 
     // Inserimento della parte finale del reference
