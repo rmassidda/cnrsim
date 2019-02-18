@@ -46,6 +46,8 @@ int main(int argc, char **argv){
     int freq_size = 0;
     int freq_ret;
     double * p = NULL;
+    // Test
+    char * ref_check = NULL;
 
     // Parse arguments
     if ( argc != 4 ){
@@ -99,8 +101,13 @@ int main(int argc, char **argv){
             }
             // La posizione sull'allele varia al netto del segno della distanza
             allele[i]->pos += distance;    
-            
+            // Test
+            // La posizione del puntatore sull'allele è coerente?
             assert ( line->pos == allele[i]->pos + allele[i]->off );
+            // Il reference è coerente con quello descritto dalla variazione?
+            ref_check = realloc (ref_check, sizeof(char) * ( strlen( line->d.allele[0] ) + 1 ) );
+            sprintf ( ref_check, "%.*s", (int) strlen ( line->d.allele[0] ), &seq->sequence[ line->pos ] ); 
+            assert ( strcmp ( ref_check, line->d.allele[0] ) == 0 );
             // Definito dallo standard
             af_ret = bcf_get_info_float( hdr, line, "AF", af, &af_size );
             // Usato da dbSNP
