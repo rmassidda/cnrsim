@@ -5,6 +5,7 @@
 #include <math.h>
 #include "fileManager.h"
 #include "variator.h"
+#include "parse_frequency.h"
 
 #define ALL_N 2
 
@@ -37,6 +38,14 @@ int main(int argc, char **argv){
     srand(time(NULL));
     double outcome;
     double threshold;
+    //  Allelic frequency parser
+    float *af = NULL;
+    int af_size = 0;
+    int af_ret;
+    char *freq = NULL;
+    int freq_size = 0;
+    int freq_ret;
+    double * p = NULL;
 
     // Parse arguments
     if ( argc != 4 ){
@@ -92,15 +101,31 @@ int main(int argc, char **argv){
             allele[i]->pos += distance;    
             
             assert ( line->pos == allele[i]->pos + allele[i]->off );
-            // Variazioni equiprobabili 
+            // Definito dallo standard
+            af_ret = bcf_get_info_float( hdr, line, "AF", af, &af_size );
+            // Usato da dbSNP
+            freq_ret = bcf_get_info_string( hdr, line, "FREQ", &freq, &freq_size );
+            // Controllo dei risultati
+            if ( af_ret >= 0  ){
+                p = parse_af( line->n_allele, af, p );
+            }
+            else if (freq_ret >= 0){
+                p = parse_db_snp_freq( line->n_allele, freq, p );
+            }
+            else{
+                p = linear( line->n_allele, p );
+            }
+            
+            // Estrazione dell'allele
             outcome = (double)rand() / RAND_MAX;
-            threshold = 1.0/line->n_allele;
+            threshold = 0;
             for (int i = 0; i < line->n_allele; i++){
-                if ( outcome > i*threshold ){
+                if ( threshold <= outcome && outcome < threshold + p[i] ){
                     subseq = line->d.allele[i];
+                    break;
                 }
                 else{
-                    break;
+                    threshold += p[i];
                 }
             }
             // Inserimento dei caratteri

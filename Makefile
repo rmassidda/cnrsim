@@ -1,6 +1,6 @@
 exp = e00 e01 e02 e03 e04
 
-variator: variator.c fileManager.o
+variator: variator.c fileManager.o parse_frequency.o
 	cc -Wall -g -lhts -lm -o $@ $^
 
 experiments: $(exp)
