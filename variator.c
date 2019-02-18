@@ -64,7 +64,7 @@ int main(int argc, char **argv){
         allele[i] = allele_init( seq->sequence_size );
     }
 
-    printf ( "REF\tVAR\tALL\tOFF\tDNA\n");
+    printf ( "REF\tVAR\tALL\tOFF\tREF\n");
     // Fino alla fine del VCF
     while (bcf_read(inf, hdr, line) == 0){
         // Lettura della linea
@@ -84,15 +84,11 @@ int main(int argc, char **argv){
                         &seq->sequence[ref_pos] , 
                         distance
                         );
-                // Incrementa ref_pos e all_pos
-                allele[i]->pos += distance;
             }
-            else{
-                // In questo ramo bisognerebbe fare rewind
-                // e controllare che si possano avere variazioni
-                continue;
-            }
-            printf ( "%ld\t%d\t%ld\t%ld\t%s\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off, line->d.allele[i]);
+            // La posizione sull'allele varia al netto del segno della distanza
+            allele[i]->pos += distance;    
+            
+            printf ( "%ld\t%d\t%ld\t%ld\t%s\t%.*s\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off, line->d.allele[0], (int)strlen(line->d.allele[0]), &seq->sequence[ref_pos]);
             assert ( line->pos == allele[i]->pos + allele[i]->off );
             // Se si decide di inserire la variazione e quale
             // TODO: ad ora inseriamo sempre e solo la prima
@@ -114,7 +110,7 @@ int main(int argc, char **argv){
             allele[i]->pos += strlen(subseq);
         }
         // Aggiornamento della posizione sul reference
-        ref_pos += distance + strlen(line->d.allele[0]);
+        ref_pos += (distance + strlen(line->d.allele[0]));
     }
 
     // Inserimento della parte finale del reference
