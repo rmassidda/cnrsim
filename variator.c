@@ -1,5 +1,6 @@
 #include <htslib/vcf.h>
 #include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 #include <math.h>
 #include "fileManager.h"
@@ -26,13 +27,16 @@ int main(int argc, char **argv){
     bcf_hdr_t * hdr;
     bcf1_t * line; 
     // Alleles
-    // TODO: parameter to use on species other than Homo Sapiens
     allele_t * allele[ ALL_N ];
     long int distance;
     char * subseq;
     // Output
     FILE * output[ ALL_N ];
     char * str;
+    // Random number generator
+    srand(time(NULL));
+    double outcome;
+    double threshold;
 
     // Parse arguments
     if ( argc != 4 ){
@@ -64,7 +68,6 @@ int main(int argc, char **argv){
         allele[i] = allele_init( seq->sequence_size );
     }
 
-    // printf ( "REF\tVAR\tALL\tOFF\tREF\n");
     // Fino alla fine del VCF
     while (bcf_read(inf, hdr, line) == 0){
         // Lettura della linea
@@ -88,15 +91,17 @@ int main(int argc, char **argv){
             // La posizione sull'allele varia al netto del segno della distanza
             allele[i]->pos += distance;    
             
-            //printf ( "%ld\t%d\t%ld\t%ld\t%s\t%.*s\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off, line->d.allele[0], (int)strlen(line->d.allele[0]), &seq->sequence[ref_pos]);
             assert ( line->pos == allele[i]->pos + allele[i]->off );
-            // Se si decide di inserire la variazione e quale
-            // TODO: ad ora inseriamo sempre e solo la prima
-            if ( true ){
-                subseq = line->d.allele[0];
-            }
-            else{
-                subseq = line->d.allele[1];
+            // Variazioni equiprobabili 
+            outcome = (double)rand() / RAND_MAX;
+            threshold = 1.0/line->n_allele;
+            for (int i = 0; i < line->n_allele; i++){
+                if ( outcome > i*threshold ){
+                    subseq = line->d.allele[i];
+                }
+                else{
+                    break;
+                }
             }
             // Inserimento dei caratteri
             memcpy(
