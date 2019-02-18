@@ -134,7 +134,6 @@ int main(int argc, char **argv){
         free( allele[i] );
         fclose( output[i] );
     }
-    free( subseq );
     bcf_destroy( line );
     bcf_hdr_destroy( hdr );
     bcf_close( inf );
