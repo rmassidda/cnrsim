@@ -5,7 +5,7 @@
 #include "fileManager.h"
 #include "variator.h"
 
-#define ALL_N 1
+#define ALL_N 2
 
 allele_t * allele_init(long int size){
     allele_t * allele = malloc((sizeof(struct allele_t)));
@@ -64,7 +64,7 @@ int main(int argc, char **argv){
         allele[i] = allele_init( seq->sequence_size );
     }
 
-    printf ( "REF\tVAR\tALL\tOFF\tREF\n");
+    // printf ( "REF\tVAR\tALL\tOFF\tREF\n");
     // Fino alla fine del VCF
     while (bcf_read(inf, hdr, line) == 0){
         // Lettura della linea
@@ -88,7 +88,7 @@ int main(int argc, char **argv){
             // La posizione sull'allele varia al netto del segno della distanza
             allele[i]->pos += distance;    
             
-            printf ( "%ld\t%d\t%ld\t%ld\t%s\t%.*s\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off, line->d.allele[0], (int)strlen(line->d.allele[0]), &seq->sequence[ref_pos]);
+            //printf ( "%ld\t%d\t%ld\t%ld\t%s\t%.*s\n", ref_pos, line->pos, allele[i]->pos, allele[i]->off, line->d.allele[0], (int)strlen(line->d.allele[0]), &seq->sequence[ref_pos]);
             assert ( line->pos == allele[i]->pos + allele[i]->off );
             // Se si decide di inserire la variazione e quale
             // TODO: ad ora inseriamo sempre e solo la prima
