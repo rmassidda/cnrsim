@@ -123,7 +123,7 @@ int main(int argc, char **argv){
                     first_line = false;
                 }
                 if ( current_region != line->rid ){
-                    fprintf ( stderr, "End of the region!\n" );
+                    printf ( "End of %s region\n", label );
                     break;
                 }
                 // Lettura della linea
@@ -211,7 +211,7 @@ int main(int argc, char **argv){
             for ( int i = 0; i < ALL_N; i++ ){
                 fprintf ( output[i], ">%s\n", label );
                 fprintf ( output[i], "%s\n", allele[i]->sequence );
-                fprintf ( stderr, "%s writed on file.\n", label );
+                printf ( "%s writed on file.\n", label );
             }
         }
         else{
