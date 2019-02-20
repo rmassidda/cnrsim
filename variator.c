@@ -8,7 +8,7 @@
 #include "variator.h"
 #include "parse_frequency.h"
 
-#define ALL_N 2
+#define ALL_N 1
 
 allele_t * allele_init(long int size, allele_t * allele){
     allele->buffer_size = floor( size * 1.5 );
@@ -28,6 +28,8 @@ int main(int argc, char **argv){
     bcf_srs_t * sr;
     bcf_hdr_t * hdr;
     bcf1_t * line; 
+    int current_region = 0;
+    bool first_line = false;
     // Alleles
     allele_t * allele[ ALL_N ];
     long int distance;
@@ -107,12 +109,23 @@ int main(int argc, char **argv){
         for ( int i = 0; i < ALL_N; i++ ){
             allele[i] = allele_init( seq->sequence_size, allele[i]);
         }
+        // Label separated by white space
         label = strtok ( seq->label, " " );
+        fprintf ( stdout, "%s\n", seq->label );
         // Seek on VCF file
         if ( bcf_sr_seek ( sr, label, 0 ) == 0 ){
+            first_line = true; 
             // Fino alla fine del VCF
             while ( bcf_sr_next_line ( sr ) ){
                 line = bcf_sr_get_line ( sr, 0 );
+                if ( first_line ){
+                    current_region = line->rid;
+                    first_line = false;
+                }
+                if ( current_region != line->rid ){
+                    fprintf ( stderr, "End of the region!\n" );
+                    break;
+                }
                 // Lettura della linea
                 if (bcf_unpack( line, BCF_UN_STR) != 0){
                     perror("Unpack error");
@@ -139,7 +152,7 @@ int main(int argc, char **argv){
                     // Il reference è coerente con quello descritto dalla variazione?
                     ref_check = realloc (ref_check, sizeof(char) * ( strlen( line->d.allele[0] ) + 1 ) );
                     sprintf ( ref_check, "%.*s", (int) strlen ( line->d.allele[0] ), &seq->sequence[ line->pos ] ); 
-                    assert ( strcmp ( ref_check, line->d.allele[0] ) == 0 );
+                    assert ( strcasecmp ( ref_check, line->d.allele[0] ) == 0 );
                     // Definito dallo standard
                     af_ret = bcf_get_info_float( hdr, line, "AF", af, &af_size );
                     // Usato da dbSNP
@@ -197,13 +210,16 @@ int main(int argc, char **argv){
             // Write of the sequence on file
             for ( int i = 0; i < ALL_N; i++ ){
                 fprintf ( output[i], ">%s\n", label );
-                fprintf ( output[i], allele[i]->sequence );
+                fprintf ( output[i], "%s\n", allele[i]->sequence );
+                fprintf ( stderr, "%s writed on file.\n", label );
             }
         }
         else{
             fprintf ( stderr, "Sequence %s not found in VCF\n", label );
         }
+        // Next sequence
         seq = filemanager_next_seq (fm, NULL);
+        ref_pos = 0;
     }
 
 
