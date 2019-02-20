@@ -67,7 +67,7 @@ int main(int argc, char **argv){
 
     // File is not indexed
     if ( sr->regions == NULL ){
-        int res = bcf_index_build ( argv[1], 4 );
+        int res = bcf_index_build ( argv[1], 14 );
         if ( res == 0 ){
             // File is now indexed
             bcf_sr_remove_reader ( sr, 0 );
