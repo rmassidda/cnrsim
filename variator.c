@@ -57,6 +57,9 @@ int main(int argc, char **argv){
 
     // VCF file
     inf = bcf_open (argv[1], "r" );
+    if ( inf == NULL ){
+        exit ( EXIT_FAILURE );
+    }
     // VCF header
     hdr = bcf_hdr_read(inf);
     // VCF line
@@ -64,6 +67,9 @@ int main(int argc, char **argv){
 
     // FASTA file
     fm = filemanager_init (argv[2]);
+    if ( fm == NULL ){
+        exit ( EXIT_FAILURE );
+    }
     // FASTA sequence
     seq = filemanager_next_seq (fm, NULL);
 
