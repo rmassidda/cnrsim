@@ -68,6 +68,7 @@ int main(int argc, char **argv){
     int freq_ret;
     double * p = NULL;
     // Test
+    char * ref_check = NULL;
     char * all_check = NULL;
     int done = 0;
     int ignored = 0;
@@ -179,7 +180,7 @@ int main(int argc, char **argv){
                 for ( int i = 0; i < ALL_N; i++ ){
                     // Distance between the reference and the variation pointers
                     distance = line->pos - ref_pos[i];
-                    if ( distance >= 0 ){
+                    if ( distance > 0 ){
                         /*
                          * The variation starts far from the current
                          * reference position, what is in between can
@@ -201,19 +202,30 @@ int main(int argc, char **argv){
                      * Reference sequence and reference in the VCF
                      * MUST coincide.
                      */
-                    assert ( strncasecmp ( &seq->sequence[line->pos], line->d.allele[0], strlen ( line->d.allele[0] ) ) == 0 );
-                    all_check = realloc ( all_check, sizeof ( char ) * ( strlen ( line->d.allele[0] ) + 1 ) );
-                    sprintf ( all_check, "%.*s", ( int ) strlen ( line->d.allele[0] ), &(allele[i]->sequence[allele[i]->pos]));
-                    if ( strcmp ( all_check, "" ) != 0 )
+                    ref_check = &seq->sequence[line->pos];
+                    assert ( strncasecmp ( ref_check, line->d.allele[0], strlen ( line->d.allele[0] ) ) == 0 );
+                    /*
+                    * If we want to applicate a certain variation,
+                    * reference in the allele and VCF reference
+                    * have to coincide.
+                    */
+                    all_check = &(allele[i]->sequence[allele[i]->pos]);
+
+                    if ( distance <= 0 ){
+                        fprintf ( stderr, "%s\t%s\t", all_check, line->d.allele[0] );
                         // The variation describes something that is already written
                         if ( strncasecmp ( all_check, line->d.allele[0], strlen (all_check) ) != 0 ){
                             // The reference and the allele doesn't match
                             // due to previous variations
-                            // fprintf ( stderr, "ERR\t%s\t%s\n", all_check, line->d.allele[0] );
                             allele[i]->pos -= distance;
                             ignored ++;
+                            fprintf ( stderr, "ERR\n" );
                             continue;
                         }
+                        else{
+                            fprintf ( stderr, "OK\n" );
+                        }
+                    }
                     done ++;
                     
                     // Allelic frequency as defined by VCF
