@@ -68,7 +68,6 @@ int main(int argc, char **argv){
     int freq_ret;
     double * p = NULL;
     // Test
-    char * ref_check = NULL;
     char * all_check = NULL;
     int done = 0;
     int ignored = 0;
@@ -202,9 +201,7 @@ int main(int argc, char **argv){
                      * Reference sequence and reference in the VCF
                      * MUST coincide.
                      */
-                    ref_check = realloc (ref_check, sizeof(char) * ( strlen( line->d.allele[0] ) + 1 ) );
-                    sprintf ( ref_check, "%.*s", (int) strlen ( line->d.allele[0] ), &seq->sequence[ line->pos ] ); 
-                    assert ( strcasecmp ( ref_check, line->d.allele[0] ) == 0 );
+                    assert ( strncasecmp ( &seq->sequence[line->pos], line->d.allele[0], strlen ( line->d.allele[0] ) ) == 0 );
                     all_check = realloc ( all_check, sizeof ( char ) * ( strlen ( line->d.allele[0] ) + 1 ) );
                     sprintf ( all_check, "%.*s", ( int ) strlen ( line->d.allele[0] ), &(allele[i]->sequence[allele[i]->pos]));
                     if ( strcmp ( all_check, "" ) != 0 )
