@@ -203,7 +203,9 @@ int main(int argc, char **argv){
                      * MUST coincide.
                      */
                     ref_check = &seq->sequence[line->pos];
-                    assert ( strncasecmp ( ref_check, line->d.allele[0], strlen ( line->d.allele[0] ) ) == 0 );
+                    // assert ( strncasecmp ( ref_check, line->d.allele[0], strlen ( line->d.allele[0] ) ) == 0 );
+                    // Questo assert viene momentaneamente tolto, in quanto strncasecmp non supporta il carattere
+                    // N o il carattere n
                     /*
                     * If we want to applicate a certain variation,
                     * reference in the allele and VCF reference
@@ -212,18 +214,20 @@ int main(int argc, char **argv){
                     all_check = &(allele[i]->sequence[allele[i]->pos]);
 
                     if ( distance <= 0 ){
-                        fprintf ( stderr, "%s\t%s\t", all_check, line->d.allele[0] );
+                        // fprintf ( stderr, "%s\t%s\t", all_check, line->d.allele[0] );
                         // The variation describes something that is already written
                         if ( strncasecmp ( all_check, line->d.allele[0], strlen (all_check) ) != 0 ){
+                            // Questo controllo può essere falsato dal fatto che strncasecmp non riconosca
+                            // il carattere N o n come "matcha tutto"
                             // The reference and the allele doesn't match
                             // due to previous variations
                             allele[i]->pos -= distance;
                             ignored ++;
-                            fprintf ( stderr, "ERR\n" );
+                            // fprintf ( stderr, "ERR\n" );
                             continue;
                         }
                         else{
-                            fprintf ( stderr, "OK\n" );
+                            // fprintf ( stderr, "OK\n" );
                         }
                     }
                     done ++;
@@ -291,12 +295,14 @@ int main(int argc, char **argv){
         else{
             fprintf ( stderr, "Sequence %s not found in VCF\n", label );
         }
+        printf ( "DONE:\t%d\t%.2f\n", done, done*100.0/(done+ignored ) );
+        printf ( "IGNO:\t%d\t%.2f\n", ignored, ignored*100.0/(done+ignored ) );
+        done = 0;
+        ignored = 0;
         // Next sequence
         seq = filemanager_next_seq (fm, NULL);
     }
 
-    printf ( "DONE:\t%d\t%.2f\n", done, done*100.0/(done+ignored ) );
-    printf ( "IGNO:\t%d\t%.2f\n", ignored, ignored*100.0/(done+ignored ) );
     // Cleanup
     for ( int i = 0; i < ALL_N; i++ ){
         free( allele[i]->sequence );
