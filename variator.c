@@ -1,3 +1,12 @@
+/*
+ * CNRSIM
+ * variator.c
+ * Generatos two alleles from a FASTA reference
+ * and a VCF file containing known variations.
+ *
+ * @author Riccardo Massidda
+ */
+
 #include <htslib/vcf.h>
 #include <htslib/synced_bcf_reader.h>
 #include <stdio.h>
@@ -10,7 +19,14 @@
 
 #define ALL_N 1
 
+
 allele_t * allele_init(long int size, allele_t * allele){
+    // First initialization
+    if ( allele == NULL ){
+        allele = malloc ( sizeof(allele_t) );
+        allele->sequence = NULL;
+    }
+    // Update of internal values
     allele->buffer_size = floor( size * 1.5 );
     allele->sequence = realloc( allele->sequence, (sizeof(char)) * allele->buffer_size );
     allele->pos = 0;
@@ -58,31 +74,46 @@ int main(int argc, char **argv){
         exit (EXIT_FAILURE);
     }
 
-    // VCF file
+
+    // Initialize VCF readers
     sr = bcf_sr_init ();
+    // VCF has to be indexed
     bcf_sr_set_opt ( sr, BCF_SR_REQUIRE_IDX );
+    // Link the reader to the VCF file passed by argument
     if ( bcf_sr_add_reader ( sr, argv[1] ) != 1 ){
         exit ( EXIT_FAILURE );
     }
 
-    // File is not indexed
+    /*
+     * If the file is indexed the name
+     * and the position of the regions
+     * are loaded into the readers
+     * structure.
+     */
     if ( sr->regions == NULL ){
+        // File not indexed, creation of the index
+        // 14 is a suggested value by HTSLIB documentation
         int res = bcf_index_build ( argv[1], 14 );
         if ( res == 0 ){
             // File is now indexed
+            // Relink of the file with the reader
             bcf_sr_remove_reader ( sr, 0 );
             if ( bcf_sr_add_reader ( sr, argv[1] ) != 1 ){
                 exit ( EXIT_FAILURE );
             }
         }
         else{
-            perror ( "File is not indexable.\n" );
+            perror ( "File is not indexable.\nTry first compressing it with gzip.\n" );
             exit ( EXIT_FAILURE );
         }
     }
-    // VCF header
+
+    /*
+     * Load of the header, needed to parse
+     * INFO values in the VCF.
+     */
     hdr = bcf_sr_get_header ( sr, 0 );
-    // VCF line
+    // Initialize structure that contains a record
     line = bcf_init();
 
     // FASTA file
@@ -91,21 +122,26 @@ int main(int argc, char **argv){
         exit ( EXIT_FAILURE );
     }
     
-    // OUTPUT
+    /*
+     * Output files, one per allele
+     * [filename_0.fa, filename_N.fa)
+     */
     str = malloc( sizeof(char) * (strlen(argv[3]) + 20 ));
     for ( int i = 0; i < ALL_N; i++ ){
         sprintf(str, "%s_%d.fa", argv[3], i);        
         output[i] = fopen( str, "w+" );
     }
     
-    // FASTA sequence
+    // Load of the first sequence
     seq = filemanager_next_seq (fm, NULL);
+    // Initialize alleles
     for ( int i = 0; i < ALL_N; i++ ){
-        allele[i] = malloc ( sizeof(struct allele_t) );
-        allele[i]->sequence = NULL;
+        allele[i] = allele_init (0, NULL);
     }
+
+    // While there are sequences to read in the FASTA file
     while ( seq != NULL ){
-        // Allocazione di una struttura per ogni allele
+        // Resize allele
         for ( int i = 0; i < ALL_N; i++ ){
             allele[i] = allele_init( seq->sequence_size, allele[i]);
         }
@@ -168,7 +204,7 @@ int main(int argc, char **argv){
                         p = linear( line->n_allele, p );
                     }
                     
-                    // Estrazione dell'allele
+                    // Random decision about the alternatives 
                     outcome = (double)rand() / RAND_MAX;
                     threshold = 0;
                     for (int i = 0; i < line->n_allele; i++){
