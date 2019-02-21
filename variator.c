@@ -29,6 +29,8 @@ allele_t * allele_init(long int size, allele_t * allele){
     // Update of internal values
     allele->buffer_size = floor( size * 1.5 );
     allele->sequence = realloc( allele->sequence, (sizeof(char)) * allele->buffer_size );
+    // It's necessary to clean the memory
+    memset ( allele->sequence, 0, sizeof(char)*allele->buffer_size );
     allele->pos = 0;
     allele->off = 0;
     return allele;
@@ -39,7 +41,7 @@ int main(int argc, char **argv){
     struct filemanager *fm;
     struct sequence_t *seq;
     char * label;
-    long int ref_pos = 0;
+    long int ref_pos[ALL_N];
     // VCF
     bcf_srs_t * sr;
     bcf_hdr_t * hdr;
@@ -67,6 +69,9 @@ int main(int argc, char **argv){
     double * p = NULL;
     // Test
     char * ref_check = NULL;
+    char * all_check = NULL;
+    int done = 0;
+    int ignored = 0;
 
     // Parse arguments
     if ( argc != 4 ){
@@ -144,56 +149,81 @@ int main(int argc, char **argv){
         // Resize allele
         for ( int i = 0; i < ALL_N; i++ ){
             allele[i] = allele_init( seq->sequence_size, allele[i]);
+            ref_pos[i] = 0;
         }
         // Label separated by white space
         label = strtok ( seq->label, " " );
         fprintf ( stdout, "%s\n", seq->label );
         // Seek on VCF file
         if ( bcf_sr_seek ( sr, label, 0 ) == 0 ){
+            // Label found
             first_line = true; 
-            // Fino alla fine del VCF
+            // Up to the end of VCF file
             while ( bcf_sr_next_line ( sr ) ){
                 line = bcf_sr_get_line ( sr, 0 );
+                // Set the current region ID
                 if ( first_line ){
                     current_region = line->rid;
                     first_line = false;
                 }
+                // If the region changed we need to stop
                 if ( current_region != line->rid ){
                     printf ( "End of %s region\n", label );
                     break;
                 }
-                // Lettura della linea
+                // Unpack up to INFO of the record
                 if (bcf_unpack( line, BCF_UN_STR) != 0){
                     perror("Unpack error");
                     exit(EXIT_FAILURE);
                 }
-                // Distanza tra la variazione ed il carattere ancora da leggere
-                distance = line->pos - ref_pos;
-                // Per ogni allele
+                // Per allele
                 for ( int i = 0; i < ALL_N; i++ ){
+                    // Distance between the reference and the variation pointers
+                    distance = line->pos - ref_pos[i];
                     if ( distance >= 0 ){
-                        // Copia in blocco [ref_pos, var_pos)
-                        // dal reference all'allele
+                        /*
+                         * The variation starts far from the current
+                         * reference position, what is in between can
+                         * be copied without any mutation.
+                         */
                         memcpy( 
                                 &allele[i]->sequence[allele[i]->pos], 
-                                &seq->sequence[ref_pos] , 
+                                &seq->sequence[ref_pos[i]] , 
                                 distance
                                 );
                     }
-                    // La posizione sull'allele varia al netto del segno della distanza
+                    /*
+                     * The allele pointer points to the start of
+                     * the variation, according to the offset.
+                     */
                     allele[i]->pos += distance;    
-                    // Test
-                    // La posizione del puntatore sull'allele è coerente?
                     assert ( line->pos == allele[i]->pos + allele[i]->off );
-                    // Il reference è coerente con quello descritto dalla variazione?
+                    /*
+                     * Reference sequence and reference in the VCF
+                     * MUST coincide.
+                     */
                     ref_check = realloc (ref_check, sizeof(char) * ( strlen( line->d.allele[0] ) + 1 ) );
                     sprintf ( ref_check, "%.*s", (int) strlen ( line->d.allele[0] ), &seq->sequence[ line->pos ] ); 
                     assert ( strcasecmp ( ref_check, line->d.allele[0] ) == 0 );
-                    // Definito dallo standard
+                    all_check = realloc ( all_check, sizeof ( char ) * ( strlen ( line->d.allele[0] ) + 1 ) );
+                    sprintf ( all_check, "%.*s", ( int ) strlen ( line->d.allele[0] ), &(allele[i]->sequence[allele[i]->pos]));
+                    if ( strcmp ( all_check, "" ) != 0 )
+                        // The variation describes something that is already written
+                        if ( strncasecmp ( all_check, line->d.allele[0], strlen (all_check) ) != 0 ){
+                            // The reference and the allele doesn't match
+                            // due to previous variations
+                            // fprintf ( stderr, "ERR\t%s\t%s\n", all_check, line->d.allele[0] );
+                            allele[i]->pos -= distance;
+                            ignored ++;
+                            continue;
+                        }
+                    done ++;
+                    
+                    // Allelic frequency as defined by VCF
                     af_ret = bcf_get_info_float( hdr, line, "AF", af, &af_size );
-                    // Usato da dbSNP
+                    // Allelic frequency as defined by dbSNP
                     freq_ret = bcf_get_info_string( hdr, line, "FREQ", &freq, &freq_size );
-                    // Controllo dei risultati
+                    // Parse results
                     if ( af_ret >= 0  ){
                         p = parse_af( line->n_allele, af, p );
                     }
@@ -216,38 +246,37 @@ int main(int argc, char **argv){
                             threshold += p[i];
                         }
                     }
-                    // Inserimento dei caratteri
+                    // Application of the variation
                     memcpy(
                             &allele[i]->sequence[allele[i]->pos],
                             subseq,
                             strlen(subseq)
                           );
-                    // Aggiornamento dell'offset
-                    // TODO: si può recuperare questa informazione dal VCF?
+                    // Update of the offset and the position of the allele
                     allele[i]->off += strlen(line->d.allele[0]) - strlen(subseq);
                     allele[i]->pos += strlen(subseq);
+                    // Reference position update
+                    ref_pos[i] += (distance + strlen(line->d.allele[0]));
                 }
-                // Aggiornamento della posizione sul reference
-                ref_pos += (distance + strlen(line->d.allele[0]));
             }
-            // Inserimento della parte finale del reference
+            // Copy of the remaining part of the sequence
             for ( int i = 0; i < ALL_N; i++ ){
-                distance = seq->sequence_size - ref_pos;
+                distance = seq->sequence_size - ref_pos[i];
                 memcpy(
                         &allele[i]->sequence[allele[i]->pos],
-                        &seq->sequence[ref_pos], 
+                        &seq->sequence[ref_pos[i]], 
                         distance
                       );
-                // Aggiornamento della posizione
+                // Update position
                 allele[i]->pos += distance;
-                // Carattere di fine stringa
+                // End of the sequence
                 allele[i]->pos = 0;
             }
             // Write of the sequence on file
             for ( int i = 0; i < ALL_N; i++ ){
                 fprintf ( output[i], ">%s\n", label );
                 fprintf ( output[i], "%s\n", allele[i]->sequence );
-                printf ( "%s writed on file.\n", label );
+                printf ( "%s %d writed on file.\n", label, i );
             }
         }
         else{
@@ -255,10 +284,10 @@ int main(int argc, char **argv){
         }
         // Next sequence
         seq = filemanager_next_seq (fm, NULL);
-        ref_pos = 0;
     }
 
-
+    printf ( "DONE:\t%d\t%.2f\n", done, done*100.0/(done+ignored ) );
+    printf ( "IGNO:\t%d\t%.2f\n", ignored, ignored*100.0/(done+ignored ) );
     // Cleanup
     for ( int i = 0; i < ALL_N; i++ ){
         free( allele[i]->sequence );
