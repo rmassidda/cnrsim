@@ -2,3 +2,5 @@
 *.o
 *.fa
 variator
+*.udv
+log
