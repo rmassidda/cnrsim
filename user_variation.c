@@ -4,9 +4,9 @@
 variation_set_t * udv_init ( char * filename ){
     // File related variables
     FILE * udv_file;
-    size_t len;
-    ssize_t read;
-    char * line;
+    size_t len = 0;
+    ssize_t read = 0;
+    char * line = NULL;
     int i = 0;
     // Variation set
     variation_set_t * udv_set;
@@ -14,6 +14,7 @@ variation_set_t * udv_init ( char * filename ){
     variation_t * udv_var;
     // Entries
     struct entry * udv_entry;
+    char * tmp_region = NULL;
 
     // File open
     udv_file = fopen ( filename, "r" );
@@ -25,7 +26,7 @@ variation_set_t * udv_init ( char * filename ){
     udv_set = malloc ( sizeof(variation_set_t) );
     // Initialize values
     udv_set->n = 0;
-    udv_set->current_region = "";
+    udv_set->current_region = NULL;
     udv_set->next_variation = 0;
     udv_set->elements = NULL;
     udv_set->region_index = NULL;
@@ -45,11 +46,12 @@ variation_set_t * udv_init ( char * filename ){
             i = udv_add ( udv_set, udv_var );
             if ( i < 0 ){
                 fclose ( udv_file );
+                free ( line );
                 return NULL;
             }            
             // Is it a new region?
-            if ( strcmp ( udv_set->current_region, udv_set->elements[i]->region ) != 0 ){
-                udv_set->current_region = udv_set->elements[i]->region;
+            if ( tmp_region == NULL || strcmp ( tmp_region, udv_set->elements[i]->region ) != 0 ){
+                tmp_region = udv_set->elements[i]->region;
                 udv_entry = malloc ( sizeof ( struct entry ) );
                 udv_entry->region = udv_set->elements[i]->region;        
                 udv_entry->position = i;
@@ -64,6 +66,7 @@ variation_set_t * udv_init ( char * filename ){
         }
     }
     // Cleanup 
+    free ( line );
     fclose ( udv_file );
     return udv_set;
 }
@@ -76,7 +79,7 @@ variation_t * udv_parse( char * line ){
     if ( region == NULL ){
         return NULL;
     }
-    var->region = malloc ( sizeof( char ) * strlen ( region ) );
+    var->region = malloc ( sizeof( char ) * ( strlen ( region ) + 1 ) );
     strcpy ( var->region, region );
     // Parse position
     char * pos = strtok ( NULL, "\t" );
@@ -89,21 +92,21 @@ variation_t * udv_parse( char * line ){
     if ( ref == NULL ){
         return NULL;
     }
-    var->ref = malloc ( sizeof( char ) * strlen ( ref ) );
+    var->ref = malloc ( sizeof( char ) * ( strlen ( ref ) + 1 ) );
     strcpy ( var->ref, ref );
     // Parse first allele
     char * all1 = strtok ( NULL, "\t" );
     if ( all1 == NULL ){
         return NULL;
     }
-    var->all1 = malloc ( sizeof( char ) * strlen ( all1 ) );
+    var->all1 = malloc ( sizeof( char ) * ( strlen ( all1 ) + 1 ) );
     strcpy ( var->all1, all1 );
     // Parse second allele
     char * all2 = strtok ( NULL, "\t" );
     if ( all2 == NULL ){
         return NULL;
     }
-    var->all2 = malloc ( sizeof( char ) * strlen ( all2 ) );
+    var->all2 = malloc ( sizeof( char ) * ( strlen ( all2 ) + 1 ) );
     strcpy ( var->all2, all2 );
     return var;
 }
@@ -155,11 +158,24 @@ variation_t * udv_get_line(variation_set_t * set){
 }
 
 void udv_destroy (variation_set_t * set){
-   //  struct entry * result, tmp;
-   //  // Free hash table
-   //  HASH_ITER( hh, set->region_index, result, tmp) {
-   //      HASH_DEL ( set->region_index, result );
-   //  }
+    struct entry *udv_entry, *tmp;
+    // Free of the entries in the hash table
+    HASH_ITER( hh, set->region_index, udv_entry, tmp ){
+        HASH_DEL( set->region_index, udv_entry );
+        free ( udv_entry );
+    }
+    // Free of the parsed lines
+    for ( int i = 0; i < set->n; i ++ ){
+        free ( set->elements[i]->region );
+        free ( set->elements[i]->ref );
+        free ( set->elements[i]->all1 );
+        free ( set->elements[i]->all2 );
+        free ( set->elements[i] );
+    }
+    // Free of the array
+    free ( set->elements );
+    // Free of the set
+    free ( set );
 }
 
 void udv_print ( variation_t * var ){
@@ -170,14 +186,12 @@ void udv_print ( variation_t * var ){
             var->ref,
             var->all1,
             var->all2 );
-
 }
 
 // Main function to test the library
 int main ( int argc, char ** argv ){
     // Variation set
     variation_set_t * set;
-    variation_t * var;
 
     // Initialize set
     set = udv_init ( argv[1] );
@@ -214,5 +228,7 @@ int main ( int argc, char ** argv ){
            udv_print ( udv_get_line ( set ) ); 
         }
     }
+
+    udv_destroy ( set );
     return 0;
 }
