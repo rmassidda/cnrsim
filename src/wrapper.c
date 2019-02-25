@@ -28,7 +28,7 @@ wrapper_t * wr_init ( char * vcf_filename, char * udv_filename ){
         bcf_sr_set_opt ( w->sr, BCF_SR_REQUIRE_IDX );
         // Reader file link
         if ( bcf_sr_add_reader ( w->sr, vcf_filename ) != 1 ){
-            exit ( EXIT_FAILURE );
+            return NULL;
         }
 
         /*
@@ -148,7 +148,7 @@ bool _detect_collision ( wrapper_t * w ){
     return ( ( vcf_end >= udv_start ) && ( vcf_start <= udv_end ) );
 }
 
-void _vcf2wrapper ( wrapper_t * w ){
+bool _vcf2wrapper ( wrapper_t * w ){
     double outcome;
     double threshold;
     //  Allelic frequency parser
@@ -159,6 +159,12 @@ void _vcf2wrapper ( wrapper_t * w ){
     int freq_size = 0;
     int freq_ret;
     double * p = NULL;
+
+    // Unpack line
+    if ( bcf_unpack( w->vcf_line, BCF_UN_STR ) != 0 ){
+        perror( "Unpack error" );
+        return false;
+    }
 
     w->pos = w->vcf_line->pos;
     w->ref = w->vcf_line->d.allele[0];
@@ -192,9 +198,10 @@ void _vcf2wrapper ( wrapper_t * w ){
             }
         }
     }
+    return true;
 }
 
-void _udv2wrapper ( wrapper_t * w ){
+bool _udv2wrapper ( wrapper_t * w ){
     w->pos = w->udv_line->pos;
     w->ref = w->udv_line->ref;
     w->alt = w->udv_line->all;
@@ -202,6 +209,7 @@ void _udv2wrapper ( wrapper_t * w ){
     for ( int i=0; i < ALL_N; i++ ){
         w->alt_index[i] = i;
     }
+    return true;
 }
 
 bool wr_update_wrapper ( wrapper_t * w ){
@@ -214,26 +222,25 @@ bool wr_update_wrapper ( wrapper_t * w ){
 
     if ( w->used & VCF ){
         // VCF isn't usable
-        _udv2wrapper ( w );
         w->used += UDV;
+        return _udv2wrapper ( w );
     }
     else if ( w->used & UDV ){
         // UDV isn't usable
-        _vcf2wrapper ( w );
         w->used += VCF;
+        return _vcf2wrapper ( w );
     }
     else{
         if ( w->vcf_line->pos < ( w->udv_line->pos + strlen (w->udv_line->ref ) ) ) {
-            _vcf2wrapper ( w );
             w->used += VCF;
             // If there is a collision 
             // line must be ignored
-            return !( _detect_collision( w ) );
+            return _vcf2wrapper ( w ) && !( _detect_collision( w ) );
         }
         else{
             // Threshold reached
-            _udv2wrapper ( w );
             w->used += UDV;
+            return _udv2wrapper ( w );
         }
     }
 
