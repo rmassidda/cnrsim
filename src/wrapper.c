@@ -168,7 +168,8 @@ bool _vcf2wrapper ( wrapper_t * w ){
 
     w->pos = w->vcf_line->pos;
     w->ref = w->vcf_line->d.allele[0];
-    w->alt = &w->vcf_line->d.allele[1];
+    // Even the reference is a possible alternative!
+    w->alt = w->vcf_line->d.allele;
     // Allelic frequency as defined by VCF
     af_ret = bcf_get_info_float( w->hdr, w->vcf_line, "AF", af, &af_size );
     // Allelic frequency as defined by dbSNP
