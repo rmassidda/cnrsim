@@ -19,7 +19,7 @@
 typedef struct wrapper_t wrapper_t;
 
 enum parser {
-    NONE = 0,
+    NO = 0,
     VCF = 1,
     UDV = 2,
     BOTH = 3
