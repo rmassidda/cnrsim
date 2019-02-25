@@ -190,7 +190,7 @@ int main(int argc, char **argv){
         done = 0;
         ignored = 0;
         // Next sequence
-        seq = filemanager_next_seq (fm, NULL);
+        seq = filemanager_next_seq (fm, seq);
     }
 
     // Cleanup
