@@ -86,7 +86,7 @@ int wr_seek ( wrapper_t * w, char * label ){
     // Initialize
     w->seek = 0;
     // New line must be read
-    w->used = 3;
+    w->used = BOTH;
     // Update region
     w->region = label;
     // Update region

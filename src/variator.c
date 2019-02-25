@@ -199,7 +199,6 @@ int main(int argc, char **argv){
         free( allele[i] );
         fclose( output[i] );
     }
-    // free ( p );
     wr_destroy ( w );
     filemanager_destroy( fm );
     exit(EXIT_SUCCESS);
