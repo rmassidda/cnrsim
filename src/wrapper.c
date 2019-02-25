@@ -63,8 +63,7 @@ wrapper_t * wr_init ( char * vcf_filename, char * udv_filename ){
          * INFO values in the VCF.
          */
         w->hdr = bcf_sr_get_header ( w->sr, 0 );
-        // Initialize structure that contains a record
-        w->vcf_line = bcf_init();
+        w->vcf_line = NULL;
         
         w->present += VCF;
     }
@@ -254,8 +253,7 @@ bool wr_update_wrapper ( wrapper_t * w ){
 
 void wr_destroy ( wrapper_t * w ){
     // VCF
-    bcf_destroy( w->vcf_line );
-    bcf_hdr_destroy( w->hdr );
+    bcf_sr_destroy ( w->sr );
     // UDV
     udv_destroy ( w->udv );
     // Wrapper
