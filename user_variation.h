@@ -13,6 +13,8 @@
 #include <uthash.h>
 #include <stdbool.h>
 
+#define ALL_N 2
+
 typedef struct variation_t variation_t;
 typedef struct variation_set_t variation_set_t;
 
@@ -20,8 +22,7 @@ struct variation_t{
     char * region;
     int pos;
     char * ref;
-    char * all1;
-    char * all2;
+    char * all[ALL_N];
 };
 
 struct entry{

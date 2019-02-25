@@ -95,19 +95,19 @@ variation_t * udv_parse( char * line ){
     var->ref = malloc ( sizeof( char ) * ( strlen ( ref ) + 1 ) );
     strcpy ( var->ref, ref );
     // Parse first allele
-    char * all1 = strtok ( NULL, "\t" );
-    if ( all1 == NULL ){
+    char * first_allele = strtok ( NULL, "\t" );
+    if ( first_allele == NULL ){
         return NULL;
     }
-    var->all1 = malloc ( sizeof( char ) * ( strlen ( all1 ) + 1 ) );
-    strcpy ( var->all1, all1 );
+    var->all[0] = malloc ( sizeof( char ) * ( strlen ( first_allele ) + 1 ) );
+    strcpy ( var->all[0], first_allele );
     // Parse second allele
-    char * all2 = strtok ( NULL, "\t" );
-    if ( all2 == NULL ){
+    char * second_allele = strtok ( NULL, "\t" );
+    if ( second_allele == NULL ){
         return NULL;
     }
-    var->all2 = malloc ( sizeof( char ) * ( strlen ( all2 ) + 1 ) );
-    strcpy ( var->all2, all2 );
+    var->all[1] = malloc ( sizeof( char ) * ( strlen ( second_allele ) + 1 ) );
+    strcpy ( var->all[1], second_allele );
     return var;
 }
 
@@ -168,8 +168,8 @@ void udv_destroy (variation_set_t * set){
     for ( int i = 0; i < set->n; i ++ ){
         free ( set->elements[i]->region );
         free ( set->elements[i]->ref );
-        free ( set->elements[i]->all1 );
-        free ( set->elements[i]->all2 );
+        free ( set->elements[i]->all[0] );
+        free ( set->elements[i]->all[1] );
         free ( set->elements[i] );
     }
     // Free of the array
@@ -184,8 +184,8 @@ void udv_print ( variation_t * var ){
             var->region,
             var->pos,
             var->ref,
-            var->all1,
-            var->all2 );
+            var->all[0],
+            var->all[1] );
 }
 
 // Main function to test the library
