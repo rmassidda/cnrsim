@@ -2,6 +2,9 @@
 #include "wrapper.h"
 #include "parse_frequency.h"
 
+// Global variables
+double * p = NULL;
+
 wrapper_t * wr_init ( char * vcf_filename, char * udv_filename ){
     wrapper_t * w;
     // At least a filename is required
@@ -158,7 +161,6 @@ bool _vcf2wrapper ( wrapper_t * w ){
     char *freq = NULL;
     int freq_size = 0;
     int freq_ret;
-    double * p = NULL;
 
     // Unpack line
     if ( bcf_unpack( w->vcf_line, BCF_UN_STR ) != 0 ){
@@ -177,9 +179,11 @@ bool _vcf2wrapper ( wrapper_t * w ){
     // Parse results
     if ( af_ret >= 0  ){
         p = parse_af( w->vcf_line->n_allele, af, p );
+        free ( af );
     }
     else if (freq_ret >= 0){
         p = parse_db_snp_freq( w->vcf_line->n_allele, freq, p );
+        free ( freq );
     }
     else{
         p = linear( w->vcf_line->n_allele, p );
@@ -249,6 +253,13 @@ bool wr_update_wrapper ( wrapper_t * w ){
 }
 
 void wr_destroy ( wrapper_t * w ){
-    // TODO
+    // VCF
+    bcf_destroy( w->vcf_line );
+    bcf_hdr_destroy( w->hdr );
+    // UDV
+    udv_destroy ( w->udv );
+    // Wrapper
+    free ( w );
+    free ( p );
     return;
 }

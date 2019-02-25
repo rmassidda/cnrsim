@@ -202,8 +202,7 @@ int main(int argc, char **argv){
         fclose( output[i] );
     }
     // free ( p );
-    // bcf_destroy( line );
-    // bcf_hdr_destroy( hdr );
+    wr_destroy ( w );
     filemanager_destroy( fm );
     exit(EXIT_SUCCESS);
 }
