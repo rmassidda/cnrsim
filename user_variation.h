@@ -13,7 +13,9 @@
 #include <uthash.h>
 #include <stdbool.h>
 
+#ifndef ALL_N
 #define ALL_N 2
+#endif
 
 typedef struct variation_t variation_t;
 typedef struct variation_set_t variation_set_t;

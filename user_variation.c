@@ -189,12 +189,12 @@ void udv_print ( variation_t * var ){
 }
 
 // Main function to test the library
-int main ( int argc, char ** argv ){
+int test ( char * filename){
     // Variation set
     variation_set_t * set;
 
     // Initialize set
-    set = udv_init ( argv[1] );
+    set = udv_init ( filename );
 
     // Test: read all the lines
     while ( set->next_variation < set->n ){

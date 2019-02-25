@@ -27,8 +27,7 @@ fileManager.o: fileManager.h common.h
 
 parse_frequency.o: parse_frequency.h
 
-user_variation: user_variation.c
-	cc -Wall -g -lhts -o $@ $^
+user_variation: user_variation.h
 
 .PHONY: clean
 clean:
