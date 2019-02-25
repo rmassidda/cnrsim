@@ -38,7 +38,6 @@ int main(int argc, char **argv){
     // FASTA
     struct filemanager *fm;
     struct sequence_t *seq;
-    char * label;
     long int ref_pos[ALL_N];
     // Wrapper
     wrapper_t * w;
@@ -96,10 +95,9 @@ int main(int argc, char **argv){
             ref_pos[i] = 0;
         }
         // Label separated by white space
-        label = strtok ( seq->label, " " );
         fprintf ( stdout, "%s\n", seq->label );
         // Seek to the desired region
-        if ( wr_seek ( w, label ) ){
+        if ( wr_seek ( w, seq->label ) ){
             // Up to the end of the region
             while ( wr_region ( w ) ){
                 if ( wr_update_wrapper ( w ) ){
@@ -177,13 +175,13 @@ int main(int argc, char **argv){
             }
             // Write of the sequence on file
             for ( int i = 0; i < ALL_N; i++ ){
-                fprintf ( output[i], ">%s\n", label );
+                fprintf ( output[i], ">%s\n", seq->label );
                 fprintf ( output[i], "%s\n", allele[i]->sequence );
-                printf ( "%s %d writed on file.\n", label, i );
+                printf ( "%s %d writed on file.\n", seq->label, i );
             }
         }
         else{
-            fprintf ( stderr, "Sequence %s not found in VCF\n", label );
+            fprintf ( stderr, "Sequence %s not found in VCF\n", seq->label );
         }
         int sum = done + ignored + udv_collision;
         printf ( "DONE:\t%d\t%.2f\n", done, done*100.0/sum );
