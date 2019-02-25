@@ -49,8 +49,7 @@ int main(int argc, char **argv){
     // Output
     FILE * output[ ALL_N ];
     char * str;
-    // Test
-    char * ref_check = NULL;
+    // Statistics
     char * all_check = NULL;
     int done = 0;
     int ignored = 0;
@@ -127,14 +126,6 @@ int main(int argc, char **argv){
                         allele[i]->pos += distance;    
                         assert ( w->pos == allele[i]->pos + allele[i]->off );
                         /*
-                         * Reference sequence and reference in the VCF
-                             * MUST coincide.
-                         */
-                        ref_check = &seq->sequence[w->pos];
-                        assert ( strncasecmp ( ref_check, w->ref, strlen (w->ref) ) == 0 );
-                        // Questo assert viene momentaneamente tolto, in quanto strncasecmp non supporta il carattere
-                        // N o il carattere n
-                        /*
                         * If we want to applicate a certain variation,
                         * reference in the allele and VCF reference
                         * have to coincide.
@@ -142,20 +133,13 @@ int main(int argc, char **argv){
                         all_check = &(allele[i]->sequence[allele[i]->pos]);
 
                         if ( distance <= 0 ){
-                            // fprintf ( stderr, "%s\t%s\t", all_check, line->d.allele[0] );
                             // The variation describes something that is already written
                             if ( strncasecmp ( all_check, w->ref, strlen (all_check) ) != 0 ){
-                                // Questo controllo può essere falsato dal fatto che strncasecmp non riconosca
-                                // il carattere N o n come "matcha tutto"
                                 // The reference and the allele doesn't match
                                 // due to previous variations
                                 allele[i]->pos -= distance;
                                 ignored ++;
-                                // fprintf ( stderr, "ERR\n" );
                                 continue;
-                            }
-                            else{
-                                // fprintf ( stderr, "OK\n" );
                             }
                         }
                         done ++;
