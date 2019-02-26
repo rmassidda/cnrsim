@@ -4,10 +4,10 @@
 typedef struct allele_t allele_t;
 
 struct allele_t {
-	char * sequence; // pointer to the mutated sequence
-	long int buffer_size; // size of the sequence
-	long int pos; // current position
-	long int off; // offset from reference position
+    char * sequence; // pointer to the mutated sequence
+    long int buffer_size; // size of the sequence
+    long int pos; // current position
+    long int off; // offset from reference position
 };
 
 /*

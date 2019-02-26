@@ -19,34 +19,34 @@
 typedef struct wrapper_t wrapper_t;
 
 enum parser {
-	NO = 0,
-	VCF = 1,
-	UDV = 2,
-	BOTH = 3
+    NO = 0,
+    VCF = 1,
+    UDV = 2,
+    BOTH = 3
 };
 
 struct wrapper_t {
-	// VCF
-	bcf_srs_t * sr;
-	bcf_hdr_t * hdr;
-	bcf1_t * vcf_line;
-	// UDV
-	variation_set_t * udv;
-	variation_t * udv_line;
-	/*
-	 * Status variables.
-	 * First bit for VCF
-	 * Second bit for UDV
-	 */
-	int present; // which file has been correctly opened
-	int seek; // which file contains the requested region
-	int used; // which file needs to update is buffer
-	// Public data
-	char * region; // current region
-	int pos; // position of the variation
-	char * ref; // reference
-	char ** alt; // alternatives
-	int alt_index[ALL_N]; // alternative chosen for each allele
+    // VCF
+    bcf_srs_t * sr;
+    bcf_hdr_t * hdr;
+    bcf1_t * vcf_line;
+    // UDV
+    variation_set_t * udv;
+    variation_t * udv_line;
+    /*
+     * Status variables.
+     * First bit for VCF
+     * Second bit for UDV
+     */
+    int present; // which file has been correctly opened
+    int seek; // which file contains the requested region
+    int used; // which file needs to update is buffer
+    // Public data
+    char * region; // current region
+    int pos; // position of the variation
+    char * ref; // reference
+    char ** alt; // alternatives
+    int alt_index[ALL_N]; // alternative chosen for each allele
 };
 
 /*

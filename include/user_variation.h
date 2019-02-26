@@ -21,24 +21,24 @@ typedef struct variation_t variation_t;
 typedef struct variation_set_t variation_set_t;
 
 struct variation_t {
-	char * region;
-	int pos;
-	char * ref;
-	char * all[ALL_N];
+    char * region;
+    int pos;
+    char * ref;
+    char * all[ALL_N];
 };
 
 struct entry {
-	char * region; // region label
-	int position; // first position in the variation array
-	UT_hash_handle hh;
+    char * region; // region label
+    int position; // first position in the variation array
+    UT_hash_handle hh;
 };
 
 struct variation_set_t {
-	int n; // number of elements
-	char * current_region; // last region visited
-	int next_variation; // index of the next line
-	variation_t ** elements; // variation parsed
-	struct entry * region_index;
+    int n; // number of elements
+    char * current_region; // last region visited
+    int next_variation; // index of the next line
+    variation_t ** elements; // variation parsed
+    struct entry * region_index;
 };
 
 /*
