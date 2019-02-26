@@ -56,6 +56,7 @@ struct filemanager *filemanager_init (char *filename) {
   }
   __filemanager_read_id (filename, fmobj->empty_identifier);
   fmobj->offset = 0;
+  fmobj->finish = false;
   fmobj->buffer_size = fread (fmobj->buffer, 1, BUFF_SIZE, fmobj->pf);
   /*  Check reading error  */
   if (fmobj->buffer_size < BUFF_SIZE && feof (fmobj->pf) == 0) {
