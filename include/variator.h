@@ -1,3 +1,11 @@
+/*
+ * CNRSIM
+ * variator.h
+ * Defines the containing
+ * the sequence in an allele
+ *
+ * @author Riccardo Massidda
+ */
 #ifndef VARIATOR_H
 #define VARIATOR_H
 
