@@ -1,3 +1,12 @@
+/*
+ * CNRSIM
+ * user_variation.c
+ * Library that parses a tab-separated file
+ * provided by the user containing genomic
+ * variants.
+ *
+ * @author Riccardo Massidda
+ */
 #include <stdio.h>
 #include "user_variation.h"
 

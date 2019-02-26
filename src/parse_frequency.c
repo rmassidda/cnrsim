@@ -1,3 +1,12 @@
+/*
+ * CNRSIM
+ * parse_frequency.c
+ * Library that generates a discrete
+ * distribution of alternative alleles
+ * givent the allele frequency
+ *
+ * @author Riccardo Massidda
+ */
 #include "parse_frequency.h"
 #include <stdio.h>
 #include <string.h>
@@ -20,7 +29,7 @@ double * parse_db_snp_freq ( int n, char * freq, double * p ) {
     double sum = 0;
     double norm = 0;
 
-    // Lettura dei dati noti
+    // Read of data
     for ( int i = 0; i < n; i++ ) {
         substr = strtok ( NULL, "," );
         if ( substr[0] == '.' ) {
@@ -32,7 +41,7 @@ double * parse_db_snp_freq ( int n, char * freq, double * p ) {
         }
     }
 
-    // Sostituzione dei punti
+    // Substitution of points (no info)
     for ( int i = 0; i < n; i++ ) {
         if ( p[i] == -1 ) {
             p[i] = ( 1 - sum ) / n_dots;
@@ -40,7 +49,7 @@ double * parse_db_snp_freq ( int n, char * freq, double * p ) {
         norm += p[i];
     }
 
-    // Normalizzazione dei risultati
+    // Normalization
     for ( int i = 0; i < n; i++ ) {
         p[i] /= norm;
     }

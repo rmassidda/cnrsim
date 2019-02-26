@@ -1,3 +1,12 @@
+/*
+ * CNRSIM
+ * wrapper.c
+ * Library that wrappes the HTSLIB parser for
+ * VCF file, and the CNRSIM parser for user
+ * defined variants
+ *
+ * @author Riccardo Massidda
+ */
 #include <time.h>
 #include "wrapper.h"
 #include "parse_frequency.h"
