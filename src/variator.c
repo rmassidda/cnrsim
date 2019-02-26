@@ -159,27 +159,25 @@ int main ( int argc, char ** argv ) {
                     udv_collision++;
                 }
             }
-            // Copy of the remaining part of the sequence
-            for ( int i = 0; i < ALL_N; i++ ) {
-                distance = seq->sequence_size - ref_pos[i];
-                memcpy (
-                    &allele[i]->sequence[allele[i]->pos],
-                    &seq->sequence[ref_pos[i]],
-                    distance
-                );
-                // Update position
-                allele[i]->pos += distance;
-                // End of the sequence
-                allele[i]->pos = 0;
-            }
-            // Write of the sequence on file
-            for ( int i = 0; i < ALL_N; i++ ) {
-                fprintf ( output[i], ">%s\n", seq->label );
-                fprintf ( output[i], "%s\n", allele[i]->sequence );
-                printf ( "%s %d writed on file.\n", seq->label, i );
-            }
-        } else {
-            fprintf ( stderr, "Sequence %s not found in VCF\n", seq->label );
+        }
+        // Copy of the remaining part of the sequence
+        for ( int i = 0; i < ALL_N; i++ ) {
+            distance = seq->sequence_size - ref_pos[i];
+            memcpy (
+                &allele[i]->sequence[allele[i]->pos],
+                &seq->sequence[ref_pos[i]],
+                distance
+            );
+            // Update position
+            allele[i]->pos += distance;
+            // End of the sequence
+            allele[i]->pos = 0;
+        }
+        // Write of the sequence on file
+        for ( int i = 0; i < ALL_N; i++ ) {
+            fprintf ( output[i], ">%s\n", seq->label );
+            fprintf ( output[i], "%s\n", allele[i]->sequence );
+            printf ( "%s %d writed on file.\n", seq->label, i );
         }
         int sum = done + ignored + udv_collision;
         printf ( "DONE:\t%d\t%.2f\n", done, done * 100.0 / sum );
