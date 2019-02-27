@@ -19,22 +19,26 @@ aligner_t * al_init ( char * s1, char * s2, method_t method ){
     // Method
     al->method = method;
     // Alignement result
-    al->aligned = NULL;
+    al->alignment = NULL;
     return al;
 }
 
 void __initMatrix ( aligner_t * al ) {
     int i, j;
+    // Allocate matrix pointers
     al->M = malloc ( al->len[1] * sizeof ( int * ) );
     al->op = malloc ( al->len[1] * sizeof ( char * ) );
+    // Allocate rows
     for ( i = 0; i < al->len[1]; i ++ ) {
         al->M[i] = malloc ( al->len[0] * sizeof ( int ) );
         al->op[i] = malloc ( al->len[0] * sizeof ( char ) );
+        // Initial conditions
         for ( j = 0; j < al->len[0]; j ++ ) {
             al->M[i][j] = 0;
             al->op[i][j] = '!';
         }
     }
+    // Global alignment
     if ( al->method == GLOBAL ) {
         for ( i = 0; i < al->len[0]; i ++ ) {
             al->M[0][i] = i * GAP;
@@ -49,7 +53,9 @@ void __initMatrix ( aligner_t * al ) {
 }
 
 int similarity ( char token1, char token2 ) {
-    if ( token1 == token2 ) return MATCH;
+    if ( token1 == token2 ){
+        return MATCH;
+    }
     return MISMATCH;
 }
 
@@ -108,7 +114,7 @@ void __getLastScore ( aligner_t * al, int * lastC ) {
     lastC[1] = mi;
 }
 
-char * buildAlignment ( aligner_t * al ) {
+char * build_alignment ( aligner_t * al ) {
     int lastC[2];
     int i, j, k;
     char * s;
@@ -152,11 +158,11 @@ char * buildAlignment ( aligner_t * al ) {
         k ++;
     }
     s[k] = '\0';
-    al->aligned = malloc ( sizeof ( char ) * ( k + 1 ) );
-    for ( i = 0, k --; k >= 0; i++, k -- ) al->aligned[i] = s[k];
-    al->aligned[i] = '\0';
+    al->alignment = malloc ( sizeof ( char ) * ( k + 1 ) );
+    for ( i = 0, k --; k >= 0; i++, k -- ) al->alignment[i] = s[k];
+    al->alignment[i] = '\0';
     free ( s );
-    return al->aligned;
+    return al->alignment;
 }
 
 char * alignment ( aligner_t * al, char * alignmentString ) {
@@ -195,7 +201,7 @@ void dump ( aligner_t * al ) {
     int ** M = al->M;
     for ( i = 0; i < al->len[1]; i ++ ) {
         for ( j = 0; j < al->len[0]; j ++ )
-            printf ( "%d ", M[i][j] );
+            printf ( "%d\t", M[i][j] );
         printf ( "\n" );
     }
     for ( i = 0; i < al->len[1]; i ++ ) {
@@ -212,6 +218,6 @@ void al_destroy ( aligner_t * al ){
     }
     free ( al->M );
     free ( al->op );
-    free ( al->aligned );
+    free ( al->alignment );
     free ( al );
 }
