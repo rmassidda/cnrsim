@@ -17,7 +17,7 @@ enum error{
 
 struct aligner_t {
     char * seq[2]; // sequences to be aligned
-    int len[2]; // length of the sequences
+    int len[2]; // length of the sequences (zero-included)
     int ** M; // matrix M
     char ** op; // matrix operations
     enum alignment method; // method of alignment

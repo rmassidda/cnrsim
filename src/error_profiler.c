@@ -23,7 +23,7 @@ int main ( int argc, char ** argv ) {
     char * str = build_alignment ( al );
     printf ( "al\t%s\n", str );
     printf ( "al\t%s\n", alignment ( al, str ) );
-    dump ( al );
+    // dump ( al );
 
     al_destroy ( al );
     return 0;

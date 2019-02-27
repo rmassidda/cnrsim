@@ -11,8 +11,8 @@ aligner_t * al_init ( char * s1, char * s2, method_t method ){
     // Sequences
     al->seq[0] = s1;
     al->seq[1] = s2;
-    al->len[0] = strlen ( s1 );
-    al->len[1] = strlen ( s2 );
+    al->len[0] = strlen ( s1 ) + 1;
+    al->len[1] = strlen ( s2 ) + 1;
     // Matrix
     al->M = NULL;
     al->op = NULL;
