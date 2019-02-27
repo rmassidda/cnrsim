@@ -11,4 +11,4 @@ error: $(addprefix src/, ${ERROBJ})
 
 .PHONY: clean
 clean:
-	-rm variator
+	-rm variator error
