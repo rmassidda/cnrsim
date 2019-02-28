@@ -22,8 +22,8 @@ struct aligner_t {
     int read_len; // length of the read ( zero-included )
     int ** nw; // Needleman–Wunsch matrix
     char ** op; // matrix operations
-    enum alignment method; // method of alignment
     char * alignment; // result of the alignment
+    int start; // start position of the alignment
 };
 
 /*
@@ -52,14 +52,14 @@ void align ( aligner_t * al ) ;
 void __getLastScore ( aligner_t * al, int * lastC ) ;
 
 /*
- * Alignes the first string to the second.
+ * Alignes the read to the reference
  *
  * @param al pointer to the aligner
  * @ret alignment string
  */
 char * build_alignment ( aligner_t * al ) ;
 
-char * alignment ( aligner_t * al, char * alignmentString ) ;
+char * alignment ( aligner_t * al ) ;
 
 /* 
  * Prints the matrixes.

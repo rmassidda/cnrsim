@@ -5,9 +5,6 @@
 
 aligner_t * al_init ( char * reference, char * read, method_t method ){
     aligner_t * al = malloc ( sizeof ( aligner_t ) );
-    if ( al == NULL ){
-        return NULL;
-    }
     // Sequences
     al->reference = reference;
     al->read = read;
@@ -16,10 +13,11 @@ aligner_t * al_init ( char * reference, char * read, method_t method ){
     // Matrix
     al->nw = NULL;
     al->op = NULL;
-    // Method
-    al->method = method;
     // Alignement result
     al->alignment = NULL;
+    al->start = 0;
+    // Init matrixes
+    __initMatrix ( al );
     return al;
 }
 
@@ -37,163 +35,117 @@ void __initMatrix ( aligner_t * al ) {
             al->nw[i][j] = 0;
             al->op[i][j] = '!';
         }
+        // GAP in the first column
+        al->nw[i][0] = i * GAP;
+        al->op[i][0] = 'T';
     }
-    // Global alignment
-    if ( al->method == GLOBAL ) {
-        for ( i = 0; i < al->ref_len; i ++ ) {
-            al->nw[0][i] = i * GAP;
-            al->op[0][i] = '1';
-        }
-        for ( j = 0; j < al->read_len; j ++ ) {
-            al->nw[j][0] = j * GAP;
-            al->op[j][0] = '1';
-        }
-        al->op[0][0] = '=';
-    }
-}
-
-int similarity ( char token1, char token2 ) {
-    if ( token1 == token2 ){
-        return MATCH;
-    }
-    return MISMATCH;
 }
 
 void align ( aligner_t * al ) {
-    int i, j, g1, g2, s;
-    int ** M;
-    char simb;
-    __initMatrix ( al );
-    M = al->nw;
-    for ( j = 1; j < al->read_len; j ++ ) {
-        for ( i = 1; i < al->ref_len; i ++ ) {
-            g1 = M[j - 1][i] + GAP;
-            g2 = M[j][i - 1] + GAP;
-            s = similarity ( al->reference[i - 1], al->read[j - 1] );
-            if ( s > 0 ) simb = '=';
-            else simb = '!';
-            /*  Sussume self.M[j][i] = max ( max (g1, g2), self.M[j-1][i-1] + s)  */
-            M[j][i] = M[j - 1][i - 1] + s;
-            if ( g1 > M[j][i] ) M[j][i] = g1;
-            if ( g2 > M[j][i] ) M[j][i] = g2;
-            if ( M[j][i] == g2 ) al->op[j][i] = '2';
-            if ( M[j][i] == g1 ) al->op[j][i] = '1';
-            if ( ( M[j][i] != g1 ) && ( M[j][i] != g2 ) ) al->op[j][i] = simb;
+    int left, top;
+    for ( int i = 1; i < al->read_len; i ++ ) {
+        for ( int j = 1; j < al->ref_len; j ++ ) {
+            left = al->nw[i][j-1] + GAP;
+            top = al->nw[i-1][j] + GAP;
+            // Search for max neighbors
+            if ( al->reference[j-1] == al->read[i-1]){
+                al->nw[i][j] = al->nw[i - 1][j - 1] + MATCH;
+                al->op[i][j] = '=';
+            }
+            else {
+                al->nw[i][j] = al->nw[i - 1][j - 1] + MISMATCH;
+                al->op[i][j] = '!';
+            }
+            if ( top > al->nw[i][j] ){
+                al->nw[i][j] = top;
+                al->op[i][j] = 'T';
+            }
+            if ( left > al->nw[i][j] ){
+                al->nw[i][j] = left;
+                al->op[i][j] = 'L';
+            }
         }
     }
-}
-
-void __getLastScore ( aligner_t * al, int * lastC ) {
-    int mj, mi, maxval, i, j;
-    int ** M = al->nw;
-
-    if ( al->method == GLOBAL ) {
-        lastC[0] = al->read_len - 1;
-        lastC[1] = al->ref_len - 1;
-        return;
-    }
-    mj = al->read_len - 1;
-    mi = al->ref_len - 1;
-    maxval = M[mj][mi];
-    /* search the highest value in the right border of the matrix  */
-    for ( j = 0; j < al->read_len; j ++ ) {
-        if ( M[j][al->ref_len - 1] > maxval ) {
-            mj = j;
-            maxval = M[j][al->ref_len - 1];
-        }
-    }
-    /* search the highest value in the bottom of the matrix  */
-    for ( i = 0; i < al->ref_len; i ++ ) {
-        if ( M[al->read_len - 1][i] > maxval ) {
-            mi = i;
-            mj = al->read_len - 1;
-            maxval = M[al->read_len - 1][i];
-        }
-    }
-    lastC[0] = mj;
-    lastC[1] = mi;
 }
 
 char * build_alignment ( aligner_t * al ) {
-    int lastC[2];
     int i, j, k;
-    char * s;
+    char * s = malloc ( sizeof ( char ) * ( al->read_len + al->ref_len - 1 ) );
+
+    // Search for the maximum value
+    int max_val = al->nw[al->read_len - 1][0];
+    int max_i = al->read_len - 1;
+    int max_j = 0;
+    for ( j = 0; j < al->ref_len; j ++ ){
+        if ( al->nw[max_i][j] >= max_val ){
+           max_j = j;
+           max_val = al->nw[max_i][max_j];
+        }
+    }
+
+    // Alignment
+    i = max_i;
+    j = max_j;
     k = 0;
-    s = malloc ( sizeof ( char ) * ( al->read_len + al->ref_len + 1 ) );
-    __getLastScore ( al, lastC );
-    /* for local alignment only one loop will run  */
-    i = al->ref_len - 1;
-    while ( i > lastC[1] ) {
-        s[k] = '2';
-        i --;
-        k ++;
-    }
-    j = al->read_len - 1;
-    while ( j > lastC[0] ) {
-        s[k] = '1';
-        j --;
-        k ++;
-    }
     while ( j != 0 && i != 0 ) {
-        s[k] = al->op[j][i];
-        if ( s[k] == '2' ) i --;
-        else {
-            if ( s[k] == '1' ) j --;
-            else {
-                j --;
-                i --;
-            }
+        s[k] = al->op[i][j];
+        if ( s[k] == 'L' ){
+            j --;
+        }
+        else if ( s[k] == 'T' ){
+            i --;
+        }
+        else{
+            i --;
+            j --;
         }
         k ++;
     }
-    /* for local alignment only one loop will run  */
     while ( i > 0 ) {
-        s[k] = '2';
+        s[k] = 'T';
         i --;
-        k ++;
-    }
-    while ( j > 0 ) {
-        s[k] = '1';
-        j --;
         k ++;
     }
     s[k] = '\0';
-    al->alignment = malloc ( sizeof ( char ) * ( k + 1 ) );
+    al->start = j;
+
+    // Reverse string
+    al->alignment = realloc ( al->alignment, sizeof ( char ) * ( k + 1 ) );
     for ( i = 0, k --; k >= 0; i++, k -- ) al->alignment[i] = s[k];
     al->alignment[i] = '\0';
     free ( s );
+
     return al->alignment;
 }
 
-char * alignment ( aligner_t * al, char * alignmentString ) {
-    char * alignSeq;
-    int c1, c2, k;
-    alignSeq = malloc ( sizeof ( char ) * ( al->read_len + al->ref_len + 1 ) );
-    //alignSeq = (char *) malloc ((strlen (alignmentString) + 1) * sizeof (char));
-    c1 = 0;
-    c2 = 0;
-    for ( k = 0; k < strlen ( alignmentString ); k ++ ) {
-        if ( alignmentString[k] == '!' || alignmentString[k] == '=' ) {
-            /* If one is N is ignered  XXX - only if !  */
-            if ( al->reference[c1] == 'N' ) alignSeq[k] = al->read[c2];
-            else {
-                if ( al->read[c2] == 'N' ) alignSeq[k] = al->reference[c1];
-                else alignSeq[k] = al->reference[c1];
-            }
-            c1 ++;
-            c2 ++;
+char * alignment ( aligner_t * al ) {
+    char * seq;
+    int i = 0; // read index
+    int j = 0; // reference index
+    int k; // alignment index
+    seq = malloc ( sizeof ( char ) * ( al->read_len + al->ref_len - 1 ) );
+    for ( k = 0; k < al->start; k ++ ){
+        seq[k] = ' ';
+    }
+    for ( k = 0; k < strlen ( al->alignment ); k ++ ) {
+        if ( al->alignment[k] == '!' || al->alignment[k] == '=' ) {
+            seq[k + al->start] = al->reference[j + al->start];
+            i ++;
+            j ++;
         }
-        if ( alignmentString[k] == '1' ) {
-            alignSeq[k] = al->read[c2];
-            c2 ++;
+        // Read presents an insertion
+        else if ( al->alignment[k] == 'T' ) {
+            seq[k + al->start] = al->read[i];
+            i ++;
         }
-        if ( alignmentString[k] == '2' ) {
-            alignSeq[k] = al->reference[c1];
-            c1 ++;
+        // Read presents a deletion
+        else {
+            seq[k + al->start] = al->reference[j];
+            j ++;
         }
     }
-    alignSeq[k] = '\0';
-    return alignSeq;
+    seq[k + al->start] = '\0';
+    return seq;
 }
 
 void dump ( aligner_t * al ) {
