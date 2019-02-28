@@ -2,12 +2,6 @@
 #define ALIGN
 
 typedef struct aligner_t aligner_t;
-typedef enum alignment method_t;
-
-enum alignment{
-    GLOBAL,
-    LOCAL
-};
 
 enum error{
     GAP = -1,
@@ -31,28 +25,26 @@ struct aligner_t {
  *
  * @param s1 first sequence
  * @param s2 second sequence
- * @param method method of alignement
  * @ret initialized structure, NULL if error
  */
-aligner_t * al_init ( char * reference, char * read, method_t method );
+aligner_t * al_init ( char * reference, char * read );
 
+/*
+ * Initialize the matrix
+ *
+ * @param al pointer to the aligner
+ */
 void __initMatrix ( aligner_t * al ) ;
 
 /*
- * Checks if two char are equals.
+ * Populates the matrix
  *
- * @param token1 first char
- * @param token2 second char
- * @ret MATCH if equals, MISMATCH otherwise.
+ * @param al pointer to the aligner
  */
-int similarity ( char token1, char token2 ) ;
-
-void align ( aligner_t * al ) ;
-
-void __getLastScore ( aligner_t * al, int * lastC ) ;
+void __align ( aligner_t * al ) ;
 
 /*
- * Alignes the read to the reference
+ * Computes the alignment string
  *
  * @param al pointer to the aligner
  * @ret alignment string

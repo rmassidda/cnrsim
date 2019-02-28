@@ -18,8 +18,7 @@ int main ( int argc, char ** argv ) {
     printf ( "read\t%s\n", s2 );
     printf ( "seq\t%s\n", s1 );
 
-    al = al_init ( s1, s2, GLOBAL );
-    align ( al );    
+    al = al_init ( s1, s2 );
     char * str = build_alignment ( al );
     printf ( "al\t%s\n", alignment ( al ) );
     printf ( "al\t%s\n", str );

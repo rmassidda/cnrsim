@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "align.h"
 
-aligner_t * al_init ( char * reference, char * read, method_t method ){
+aligner_t * al_init ( char * reference, char * read ){
     aligner_t * al = malloc ( sizeof ( aligner_t ) );
     // Sequences
     al->reference = reference;
@@ -18,6 +18,7 @@ aligner_t * al_init ( char * reference, char * read, method_t method ){
     al->start = 0;
     // Init matrixes
     __initMatrix ( al );
+    __align ( al );
     return al;
 }
 
@@ -41,7 +42,7 @@ void __initMatrix ( aligner_t * al ) {
     }
 }
 
-void align ( aligner_t * al ) {
+void __align( aligner_t * al ) {
     int left, top;
     for ( int i = 1; i < al->read_len; i ++ ) {
         for ( int j = 1; j < al->ref_len; j ++ ) {
