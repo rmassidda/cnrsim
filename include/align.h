@@ -16,9 +16,11 @@ enum error{
 };
 
 struct aligner_t {
-    char * seq[2]; // sequences to be aligned
-    int len[2]; // length of the sequences (zero-included)
-    int ** M; // matrix M
+    char * reference; // reference
+    char * read; // read
+    int ref_len; // length of the reference (zero-included)
+    int read_len; // length of the read ( zero-included )
+    int ** nw; // Needleman–Wunsch matrix
     char ** op; // matrix operations
     enum alignment method; // method of alignment
     char * alignment; // result of the alignment
@@ -32,7 +34,7 @@ struct aligner_t {
  * @param method method of alignement
  * @ret initialized structure, NULL if error
  */
-aligner_t * al_init ( char * s1, char * s2, method_t method );
+aligner_t * al_init ( char * reference, char * read, method_t method );
 
 void __initMatrix ( aligner_t * al ) ;
 
