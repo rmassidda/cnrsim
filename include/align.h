@@ -14,8 +14,8 @@ struct aligner_t {
     char * read; // read
     int ref_len; // length of the reference (zero-included)
     int read_len; // length of the read ( zero-included )
-    int ** nw; // Needleman–Wunsch matrix
-    char ** op; // matrix operations
+    void * nw; // Needleman–Wunsch matrix
+    void * op; // matrix operations
     char * alignment; // result of the alignment
     int start; // start position of the alignment
 };
@@ -25,16 +25,10 @@ struct aligner_t {
  *
  * @param s1 first sequence
  * @param s2 second sequence
+ * @param aligner previously allocated structure to be reused
  * @ret initialized structure, NULL if error
  */
-aligner_t * al_init ( char * reference, char * read );
-
-/*
- * Initialize the matrix
- *
- * @param al pointer to the aligner
- */
-void __initMatrix ( aligner_t * al ) ;
+aligner_t * al_init ( char * reference, char * read, aligner_t * aligner );
 
 /*
  * Populates the matrix

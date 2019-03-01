@@ -3,84 +3,97 @@
 #include <stdlib.h>
 #include "align.h"
 
-aligner_t * al_init ( char * reference, char * read ){
-    aligner_t * al = malloc ( sizeof ( aligner_t ) );
+aligner_t * al_init ( char * reference, char * read, aligner_t * aligner ){
+    aligner_t * al = realloc ( aligner , sizeof ( aligner_t ) );
+    if ( al == NULL ){
+        return NULL;
+    }
+
     // Sequences
     al->reference = reference;
     al->read = read;
+    // TODO ref_len da parametrizzare
     al->ref_len = strlen ( reference ) + 1;
     al->read_len = strlen ( read ) + 1;
+    
     // Matrix
-    al->nw = NULL;
-    al->op = NULL;
+    if ( aligner == NULL ){
+        al->nw = NULL;
+        al->op = NULL;
+        al->alignment = NULL;
+    }
+
+    // Allocate matrix pointers
+    int (*nw)[al->ref_len] = realloc( al->nw, sizeof ( int[al->read_len][al->ref_len] ) );
+    char (*op)[al->ref_len] = realloc( al->op, sizeof ( char[al->read_len][al->ref_len] ) );
+    al->nw = (void *)nw;
+    al->op = (void *)op;
+
+    if ( nw == NULL || op == NULL ){
+        return NULL;
+    }
+    
+    // Initial conditions
+    for ( int i = 0; i < al->read_len; i ++ ) {
+        // Initial conditions
+        for ( int j = 0; j < al->ref_len; j ++ ) {
+            nw[i][j] = 0;
+            op[i][j] = '!';
+        }
+        // GAP in the first column
+        nw[i][0] = i * GAP;
+        op[i][0] = 'T';
+    }
+    
     // Alignement result
-    al->alignment = NULL;
     al->start = 0;
-    // Init matrixes
-    __initMatrix ( al );
     __align ( al );
     return al;
 }
 
-void __initMatrix ( aligner_t * al ) {
-    int i, j;
-    // Allocate matrix pointers
-    al->nw = malloc ( al->read_len * sizeof ( int * ) );
-    al->op = malloc ( al->read_len * sizeof ( char * ) );
-    // Allocate rows
-    for ( i = 0; i < al->read_len; i ++ ) {
-        al->nw[i] = malloc ( al->ref_len * sizeof ( int ) );
-        al->op[i] = malloc ( al->ref_len * sizeof ( char ) );
-        // Initial conditions
-        for ( j = 0; j < al->ref_len; j ++ ) {
-            al->nw[i][j] = 0;
-            al->op[i][j] = '!';
-        }
-        // GAP in the first column
-        al->nw[i][0] = i * GAP;
-        al->op[i][0] = 'T';
-    }
-}
-
 void __align( aligner_t * al ) {
+    int (*nw)[al->ref_len] = al->nw;
+    char (*op)[al->ref_len] = al->op;
     int left, top;
     for ( int i = 1; i < al->read_len; i ++ ) {
         for ( int j = 1; j < al->ref_len; j ++ ) {
-            left = al->nw[i][j-1] + GAP;
-            top = al->nw[i-1][j] + GAP;
+            left = nw[i][j-1] + GAP;
+            top = nw[i-1][j] + GAP;
             // Search for max neighbors
             if ( al->reference[j-1] == al->read[i-1]){
-                al->nw[i][j] = al->nw[i - 1][j - 1] + MATCH;
-                al->op[i][j] = '=';
+                nw[i][j] = nw[i - 1][j - 1] + MATCH;
+                op[i][j] = '=';
             }
             else {
-                al->nw[i][j] = al->nw[i - 1][j - 1] + MISMATCH;
-                al->op[i][j] = '!';
+                nw[i][j] = nw[i - 1][j - 1] + MISMATCH;
+                op[i][j] = '!';
             }
-            if ( top > al->nw[i][j] ){
-                al->nw[i][j] = top;
-                al->op[i][j] = 'T';
+            if ( top > nw[i][j] ){
+                nw[i][j] = top;
+                op[i][j] = 'T';
             }
-            if ( left > al->nw[i][j] ){
-                al->nw[i][j] = left;
-                al->op[i][j] = 'L';
+            if ( left > nw[i][j] ){
+                nw[i][j] = left;
+                op[i][j] = 'L';
             }
         }
     }
 }
 
 char * build_alignment ( aligner_t * al ) {
+    int (*nw)[al->ref_len] = al->nw;
+    char (*op)[al->ref_len] = al->op;
     int i, j, k;
     char * s = malloc ( sizeof ( char ) * ( al->read_len + al->ref_len - 1 ) );
 
     // Search for the maximum value
-    int max_val = al->nw[al->read_len - 1][0];
+    int max_val = nw[al->read_len - 1][0];
     int max_i = al->read_len - 1;
     int max_j = 0;
     for ( j = 0; j < al->ref_len; j ++ ){
-        if ( al->nw[max_i][j] >= max_val ){
+        if ( nw[max_i][j] >= max_val ){
            max_j = j;
-           max_val = al->nw[max_i][max_j];
+           max_val = nw[max_i][max_j];
         }
     }
 
@@ -89,7 +102,7 @@ char * build_alignment ( aligner_t * al ) {
     j = max_j;
     k = 0;
     while ( j != 0 && i != 0 ) {
-        s[k] = al->op[i][j];
+        s[k] = op[i][j];
         if ( s[k] == 'L' ){
             j --;
         }
@@ -151,26 +164,25 @@ char * alignment ( aligner_t * al ) {
 
 void dump ( aligner_t * al ) {
     int i, j;
-    int ** M = al->nw;
+    int (*nw)[al->ref_len] = al->nw;
+    char (*op)[al->ref_len] = al->op;
     for ( i = 0; i < al->read_len; i ++ ) {
         for ( j = 0; j < al->ref_len; j ++ )
-            printf ( "%d\t", M[i][j] );
+            printf ( "%d\t", nw[i][j] );
         printf ( "\n" );
     }
     for ( i = 0; i < al->read_len; i ++ ) {
         for ( j = 0; j < al->ref_len; j ++ )
-            printf ( "%c ", al->op[i][j] );
+            printf ( "%c ", op[i][j] );
         printf ( "\n" );
     }
 }
 
 void al_destroy ( aligner_t * al ){
-    for ( int i = 0; i < al->read_len; i ++ ){
-        free ( al->nw[i] );
-        free ( al->op[i] );
-    }
-    free ( al->nw );
-    free ( al->op );
+    int (*nw)[al->ref_len] = al->nw;
+    char (*op)[al->ref_len] = al->op;
+    free ( nw );
+    free ( op );
     free ( al->alignment );
     free ( al );
 }
