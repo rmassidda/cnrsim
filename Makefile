@@ -1,7 +1,7 @@
 CFLAGS = -Iinclude -Wall -lhts -lm -g
 
 VAROBJ = fileManager.c parse_frequency.c user_variation.c variator.c wrapper.c
-ERROBJ = align.c error_profiler.c fileManager.c
+ERROBJ = align.c error_profiler.c fileManager.c translate_notation.c
 
 variator: $(addprefix src/, ${VAROBJ})
 	cc ${CFLAGS} -Wall -g -lhts -lm -o $@ $^

@@ -12,6 +12,7 @@
 #include <htslib/sam.h>
 #include "align.h"
 #include "fileManager.h"
+#include "translate_notation.h"
 
 int main ( int argc, char ** argv ) {
     // FASTA
@@ -23,9 +24,12 @@ int main ( int argc, char ** argv ) {
     bam1_t *line;
     hts_idx_t *index;
     hts_itr_t *itr;
+    // Alias dictionary
+    region_index_t * alias_index;
+    char * alias = NULL;
 
     if ( argc != 4 ) {
-        printf ( "usage: %s fasta bam out\n", argv[0]);
+        printf ( "usage: %s fasta bam dictionary\n", argv[0]);
         exit ( EXIT_FAILURE );
     }
 
@@ -47,7 +51,13 @@ int main ( int argc, char ** argv ) {
         perror ( "Can't load BAM index" );
         exit ( EXIT_FAILURE );
     }
-    
+
+    // Alias dictionary
+    alias_index = tr_init ( argv[3] );
+    if ( alias_index == NULL ){
+        perror ( "Can't load alias dictionary" );
+        exit ( EXIT_FAILURE );
+    }
 
     // Load of the first sequence
     seq = filemanager_next_seq ( fm, NULL );
@@ -55,9 +65,10 @@ int main ( int argc, char ** argv ) {
     // While there are sequences to read in the FASTA file
     while ( seq != NULL ) {
         // Seek on the BAM
-        itr = bam_itr_querys( index, hdr, seq->label);
+        alias = tr_translate ( alias_index, seq->label );
+        itr = bam_itr_querys( index, hdr, alias);
         if ( itr != NULL ){
-            printf ( " %s found\n", seq->label );
+            printf ( " %s found\n", alias );
             while( bam_itr_next( fp, itr, line ) > 0){
                 int32_t pos = line->core.pos;
                 char *chr = hdr->target_name[line->core.tid];
@@ -74,7 +85,7 @@ int main ( int argc, char ** argv ) {
             }
         }		
         else{
-            printf ( "%s not found\n ", seq -> label);
+            printf ( "%s not found\n ", alias );
         }
         // Next sequence
         seq = filemanager_next_seq ( fm, seq );
@@ -86,5 +97,6 @@ int main ( int argc, char ** argv ) {
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
     sam_close( fp );
+    tr_destroy ( alias_index );
     return 0;
 }
