@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "align.h"
 
 aligner_t * al_init ( aligner_t * aligner, char * reference, int end, char * read ){
@@ -50,6 +52,18 @@ aligner_t * al_init ( aligner_t * aligner, char * reference, int end, char * rea
     return al;
 }
 
+bool __equals ( char a, char b ){
+    if ( a == b ){
+        return true;
+    }
+    else if ( toupper ( a ) == b ){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 void __align( aligner_t * al ) {
     int (*nw)[al->ref_len] = al->nw;
     char (*op)[al->ref_len] = al->op;
@@ -59,7 +73,7 @@ void __align( aligner_t * al ) {
             left = nw[i][j-1] + GAP;
             top = nw[i-1][j] + GAP;
             // Search for max neighbors
-            if ( al->reference[j-1] == al->read[i-1]){
+            if ( __equals ( al->reference[j-1], al->read[i-1] ) ){
                 nw[i][j] = nw[i - 1][j - 1] + MATCH;
                 op[i][j] = '=';
             }
