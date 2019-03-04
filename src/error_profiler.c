@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <htslib/sam.h>
+#include <math.h>
 #include "align.h"
 #include "fileManager.h"
 #include "translate_notation.h"
@@ -27,6 +28,13 @@ int main ( int argc, char ** argv ) {
     // Alias dictionary
     region_index_t * alias_index;
     char * alias = NULL;
+    // Aligner
+    aligner_t * aligner = NULL;
+    char * read = NULL;
+    int pos = 0;
+    int len = 0;
+    int start = 0;
+    int end = 0;
 
     if ( argc != 4 ) {
         printf ( "usage: %s fasta bam dictionary\n", argv[0]);
@@ -70,18 +78,39 @@ int main ( int argc, char ** argv ) {
         if ( itr != NULL ){
             printf ( " %s found\n", alias );
             while( bam_itr_next( fp, itr, line ) > 0){
-                int32_t pos = line->core.pos;
-                char *chr = hdr->target_name[line->core.tid];
-                uint32_t len = line->core.l_qseq; //length of the read.
-                uint8_t *q = bam_get_seq(line); //quality string
-                        
-                char *qseq = (char *)malloc(len);
+                // Read information
+                pos = line->core.pos;
+                len = line->core.l_qseq;
+                uint8_t *q = bam_get_seq( line ); //quality string        
+                
+                // Interval of the reference
+                // start = floor ( pos - len/4 );
+                // end = floor ( pos + len/4 );
+                // if ( start <= 0 ){
+                //     start = 0;
+                // }
+                // if ( end >= seq->sequence_size){
+                //     end = seq->sequence_size - 1;
+                // }
+                start = pos;
+                end = pos + len;
 
-                for(int i=0; i< len ; i++){
-                    qseq[i] = seq_nt16_str[bam_seqi(q,i)]; //converts into IUPAC id.
+                // Read string
+                read = realloc ( read, sizeof ( char ) * ( len + 1 ) );
+                int i;
+                for ( i = 0; i < len; i++ ){
+                    read[i] = seq_nt16_str[ bam_seqi ( q, i ) ];
                 }
-                printf ( "%s\t%d\n", chr, pos );
-                printf("%s\t%d\t%d\t%s\n",chr,pos,len,qseq);
+                read[i] = 0;
+
+                // Align
+                aligner = al_init ( aligner, seq->sequence, end, read );
+
+                // Useless print
+                printf ( "%s\t%d\t%d\t%d\t%d\n", alias, pos, len, start, end );
+                printf ( "%.*s\n", ( end - start ), &seq->sequence[start]);
+                printf ( "%s\n", build_alignment( aligner ) );
+                printf("%s\n", read );
             }
         }		
         else{
@@ -97,6 +126,7 @@ int main ( int argc, char ** argv ) {
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
     sam_close( fp );
+    free ( read );
     tr_destroy ( alias_index );
     return 0;
 }
