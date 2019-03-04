@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "align.h"
 
-aligner_t * al_init ( char * reference, char * read, aligner_t * aligner ){
+aligner_t * al_init ( aligner_t * aligner, char * reference, int end, char * read ){
     aligner_t * al = realloc ( aligner , sizeof ( aligner_t ) );
     if ( al == NULL ){
         return NULL;
@@ -12,8 +12,7 @@ aligner_t * al_init ( char * reference, char * read, aligner_t * aligner ){
     // Sequences
     al->reference = reference;
     al->read = read;
-    // TODO ref_len da parametrizzare
-    al->ref_len = strlen ( reference ) + 1;
+    al->ref_len = end + 1;
     al->read_len = strlen ( read ) + 1;
     
     // Matrix
