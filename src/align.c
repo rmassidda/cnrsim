@@ -56,9 +56,6 @@ bool __equals ( char a, char b ){
     if ( a == b ){
         return true;
     }
-    else if ( toupper ( a ) == b ){
-        return true;
-    }
     else{
         return false;
     }
