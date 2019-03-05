@@ -78,7 +78,6 @@ int main ( int argc, char ** argv ) {
         alias = tr_translate ( alias_index, seq->label );
         itr = bam_itr_querys( index, hdr, alias);
         if ( itr != NULL ){
-            printf ( " %s found\n", alias );
             while( bam_itr_next( fp, itr, line ) > 0){
                 // Read information
                 pos = line->core.pos;
@@ -102,23 +101,40 @@ int main ( int argc, char ** argv ) {
                 // Align
                 aligner = al_init ( aligner, &seq->sequence[start], len + gap_2 + gap_1, read );
                 alignment = build_alignment ( aligner );
-                printf ( "%d\n", aligner->start );
 
                 // Useless print
                 printf ( "%s\t%d\t%d\n", alias, pos, start + aligner->start );
                 // Reference
                 printf ( "%.*s\n", ( len + gap_1 + gap_2 ), &seq->sequence[start]);
-                // Alignment
-                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
-                printf ( "%s\n", alignment );
                 // Read
                 for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
                 printf("%s\n", read );
+                // Alignment
+                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
+                printf ( "%s\n", alignment );
+                // Aligned Read
+                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
+                int j = 0;
+                for ( i = 0; i < strlen (alignment); i++ ){
+                    if ( alignment[i] == '!' ){
+                        printf ( "|" );
+                        j++;
+                    }
+                    else if ( alignment[i] == 'L' ){
+                        printf ( "|" );
+                    } 
+                    else if ( alignment[i] == 'T' ){
+                        j++;
+                    }
+                    else{
+                        printf ( "%c", read[j] );
+                        j++;
+                    }
+
+                }
+                printf ( "\n\n" );
             }
         }		
-        else{
-            printf ( "%s not found\n ", alias );
-        }
         // Next sequence
         seq = filemanager_next_seq ( fm, seq );
     }
