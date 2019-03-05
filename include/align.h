@@ -28,7 +28,7 @@ struct aligner_t {
  * @param aligner previously allocated structure to be reused
  * @ret initialized structure, NULL if error
  */
-aligner_t * al_init ( aligner_t * aligner_t, char * reference, int end, char * read );
+aligner_t * al_init ( aligner_t * aligner_t, char * reference, int reference_length, char * read );
 
 /*
  * Populates the matrix

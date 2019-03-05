@@ -31,10 +31,12 @@ int main ( int argc, char ** argv ) {
     // Aligner
     aligner_t * aligner = NULL;
     char * read = NULL;
+    char * alignment = NULL;
     int pos = 0;
     int len = 0;
+    int gap_1 = 0;
+    int gap_2 = 0;
     int start = 0;
-    int end = 0;
 
     if ( argc != 4 ) {
         printf ( "usage: %s fasta bam dictionary\n", argv[0]);
@@ -84,16 +86,10 @@ int main ( int argc, char ** argv ) {
                 uint8_t *q = bam_get_seq( line ); //quality string        
                 
                 // Interval of the reference
-                // start = floor ( pos - len/4 );
-                // end = floor ( pos + len/4 );
-                // if ( start <= 0 ){
-                //     start = 0;
-                // }
-                // if ( end >= seq->sequence_size){
-                //     end = seq->sequence_size - 1;
-                // }
-                start = pos;
-                end = pos + len;
+                gap_1 = floor ( len / 4 );
+                gap_2 = gap_1;
+                start = pos - gap_1;
+                // TODO: check if start/end are valid coordinates
 
                 // Read string
                 read = realloc ( read, sizeof ( char ) * ( len + 1 ) );
@@ -104,12 +100,19 @@ int main ( int argc, char ** argv ) {
                 read[i] = 0;
 
                 // Align
-                aligner = al_init ( aligner, seq->sequence, end, read );
+                aligner = al_init ( aligner, &seq->sequence[start], len + gap_2 + gap_1, read );
+                alignment = build_alignment ( aligner );
+                printf ( "%d\n", aligner->start );
 
                 // Useless print
-                printf ( "%s\t%d\t%d\t%d\t%d\n", alias, pos, len, start, end );
-                printf ( "%.*s\n", ( end - start ), &seq->sequence[start]);
-                printf ( "%s\n", build_alignment( aligner ) );
+                printf ( "%s\t%d\t%d\n", alias, pos, start + aligner->start );
+                // Reference
+                printf ( "%.*s\n", ( len + gap_1 + gap_2 ), &seq->sequence[start]);
+                // Alignment
+                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
+                printf ( "%s\n", alignment );
+                // Read
+                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
                 printf("%s\n", read );
             }
         }		
