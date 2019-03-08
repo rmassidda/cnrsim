@@ -50,10 +50,10 @@ int main ( int argc, char ** argv ) {
     char * str;
     // Statistics
     char * all_check = NULL;
-    int done = 0;
-    int ignored = 0;
-    int udv_collision = 0;
-    int less_than_zero = 0;
+    unsigned long int done = 0;
+    unsigned long int ignored = 0;
+    unsigned long int udv_collision = 0;
+    unsigned long int less_than_zero = 0;
 
     // Parse arguments
     if ( argc != 5 ) {
@@ -184,18 +184,15 @@ int main ( int argc, char ** argv ) {
         for ( int i = 0; i < ALL_N; i++ ) {
             fprintf ( output[i], ">%s\n", seq->label );
             fprintf ( output[i], "%s\n", allele[i]->sequence );
-            printf ( "%s %d writed on file.\n", seq->label, i );
         }
-        int sum = done + ignored + udv_collision + less_than_zero;
-        printf ( "DONE:\t%d\t%.2f\n", done, done * 100.0 / sum );
-        printf ( "IGNO:\t%d\t%.2f\n", ignored, ignored * 100.0 / sum );
-        printf ( "UDVC:\t%d\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
-        printf ( "LESS:\t%d\t%.2f\n", less_than_zero, less_than_zero * 100.0 / sum );
-        done = 0;
-        ignored = 0;
         // Next sequence
         seq = filemanager_next_seq ( fm, seq );
     }
+    unsigned long int sum = done + ignored + udv_collision + less_than_zero;
+    printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
+    printf ( "IGNO:\t%lu\t%.2f\n", ignored, ignored * 100.0 / sum );
+    printf ( "UDVC:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
+    printf ( "LESS:\t%lu\t%.2f\n", less_than_zero, less_than_zero * 100.0 / sum );
 
     // Cleanup
     for ( int i = 0; i < ALL_N; i++ ) {
