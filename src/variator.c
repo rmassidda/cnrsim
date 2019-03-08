@@ -53,6 +53,7 @@ int main ( int argc, char ** argv ) {
     int done = 0;
     int ignored = 0;
     int udv_collision = 0;
+    int less_than_zero = 0;
 
     // Parse arguments
     if ( argc != 5 ) {
@@ -129,6 +130,11 @@ int main ( int argc, char ** argv ) {
                         * have to coincide.
                         */
                         all_check = & ( allele[i]->sequence[allele[i]->pos] );
+                        if ( allele[i]->pos < 0 ){
+                            allele[i]->pos -= distance;
+                            less_than_zero ++;
+                            continue;
+                        }
 
                         if ( distance <= 0 ) {
                             // The variation describes something that is already written
@@ -179,10 +185,11 @@ int main ( int argc, char ** argv ) {
             fprintf ( output[i], "%s\n", allele[i]->sequence );
             printf ( "%s %d writed on file.\n", seq->label, i );
         }
-        int sum = done + ignored + udv_collision;
+        int sum = done + ignored + udv_collision + less_than_zero;
         printf ( "DONE:\t%d\t%.2f\n", done, done * 100.0 / sum );
         printf ( "IGNO:\t%d\t%.2f\n", ignored, ignored * 100.0 / sum );
         printf ( "UDVC:\t%d\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
+        printf ( "LESS:\t%d\t%.2f\n", less_than_zero, less_than_zero * 100.0 / sum );
         done = 0;
         ignored = 0;
         // Next sequence
@@ -195,6 +202,7 @@ int main ( int argc, char ** argv ) {
         free ( allele[i] );
         fclose ( output[i] );
     }
+    free ( str );
     wr_destroy ( w );
     filemanager_destroy ( fm );
     exit ( EXIT_SUCCESS );
