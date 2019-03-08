@@ -124,17 +124,18 @@ int main ( int argc, char ** argv ) {
                          */
                         allele[i]->pos += distance;
                         assert ( w->pos == allele[i]->pos + allele[i]->off );
+                        // The position hasn't been written yet
+                        if ( allele[i]->pos < 0 ){
+                            allele[i]->pos -= distance;
+                            less_than_zero ++;
+                            continue;
+                        }
                         /*
                         * If we want to applicate a certain variation,
                         * reference in the allele and VCF reference
                         * have to coincide.
                         */
                         all_check = & ( allele[i]->sequence[allele[i]->pos] );
-                        if ( allele[i]->pos < 0 ){
-                            allele[i]->pos -= distance;
-                            less_than_zero ++;
-                            continue;
-                        }
 
                         if ( distance <= 0 ) {
                             // The variation describes something that is already written
