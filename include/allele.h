@@ -1,7 +1,7 @@
 /*
  * CNRSIM
- * variator.h
- * Defines the containing
+ * allele.h
+ * Defines the structure containing
  * the sequence in an allele
  *
  * @author Riccardo Massidda

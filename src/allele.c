@@ -1,3 +1,11 @@
+/*
+ * CNRSIM
+ * allele.c
+ * Defines the structure containing
+ * the sequence in an allele
+ *
+ * @author Riccardo Massidda
+ */
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
