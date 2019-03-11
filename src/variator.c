@@ -10,29 +10,12 @@
 #include <htslib/vcf.h>
 #include <htslib/synced_bcf_reader.h>
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
-#include <math.h>
 #include "fileManager.h"
-#include "variator.h"
+#include "allele.h"
 #include "parse_frequency.h"
 #include "wrapper.h"
 
-allele_t * allele_init ( long int size, allele_t * allele ) {
-    // First initialization
-    if ( allele == NULL ) {
-        allele = malloc ( sizeof ( allele_t ) );
-        allele->sequence = NULL;
-    }
-    // Update of internal values
-    allele->buffer_size = floor ( size * 1.5 );
-    allele->sequence = realloc ( allele->sequence, ( sizeof ( char ) ) * allele->buffer_size );
-    // It's necessary to clean the memory
-    memset ( allele->sequence, 0, sizeof ( char ) *allele->buffer_size );
-    allele->pos = 0;
-    allele->off = 0;
-    return allele;
-}
 
 int main ( int argc, char ** argv ) {
     // FASTA
@@ -196,8 +179,7 @@ int main ( int argc, char ** argv ) {
 
     // Cleanup
     for ( int i = 0; i < ALL_N; i++ ) {
-        free ( allele[i]->sequence );
-        free ( allele[i] );
+        allele_destroy ( allele[i] );
         fclose ( output[i] );
     }
     free ( str );

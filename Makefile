@@ -1,6 +1,6 @@
 CFLAGS = -Iinclude -Wall -lhts -lm -g
 
-VAROBJ = fileManager.c parse_frequency.c user_variation.c variator.c wrapper.c
+VAROBJ = fileManager.c parse_frequency.c user_variation.c variator.c wrapper.c allele.c
 
 variator: $(addprefix src/, ${VAROBJ})
 	cc ${CFLAGS} -Wall -g -lhts -lm -o $@ $^
