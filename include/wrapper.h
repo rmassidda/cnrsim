@@ -47,7 +47,7 @@ struct wrapper_t {
     char * ref; // reference
     char ** alt; // alternatives
     int * alt_index; // alternative chosen for each allele
-    int all_n;
+    int ploidy;
 };
 
 /*

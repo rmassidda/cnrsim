@@ -39,7 +39,7 @@ variation_set_t * udv_init ( char * filename, int ploidy ) {
     udv_set->next_variation = 0;
     udv_set->elements = NULL;
     udv_set->region_index = NULL;
-    udv_set->all_n = ploidy;
+    udv_set->ploidy = ploidy;
 
 
     // Read line
@@ -174,7 +174,7 @@ void udv_destroy ( variation_set_t * set ) {
     for ( i = 0; i < set->n; i ++ ) {
         free ( set->elements[i]->region );
         free ( set->elements[i]->ref );
-        for ( int j = 0; j < set->all_n; j++ ){
+        for ( int j = 0; j < set->ploidy; j++ ){
             free ( set->elements[i]->all[j] );
         }
         free ( set->elements[i]->all );

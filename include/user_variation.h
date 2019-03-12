@@ -31,7 +31,7 @@ struct entry {
 
 struct variation_set_t {
     int n; // number of elements
-    int all_n;
+    int ploidy;
     char * current_region; // last region visited
     int next_variation; // index of the next line
     variation_t ** elements; // variation parsed

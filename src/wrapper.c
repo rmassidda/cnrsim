@@ -31,7 +31,7 @@ wrapper_t * wr_init ( char * vcf_filename, char * udv_filename, int ploidy ) {
     w->used = 0;
     w->udv = NULL;
     w->udv_line = NULL;
-    w->all_n = ploidy;
+    w->ploidy = ploidy;
     w->alt_index = malloc ( sizeof ( int ) * ploidy );
 
     // Random number generator
@@ -196,7 +196,7 @@ bool _vcf2wrapper ( wrapper_t * w ) {
         p = linear ( w->vcf_line->n_allele, p );
     }
 
-    for ( int i = 0; i < w->all_n; i++ ) {
+    for ( int i = 0; i < w->ploidy; i++ ) {
         // Random decision about the alternatives
         outcome = ( double ) rand() / RAND_MAX;
         threshold = 0;
@@ -217,7 +217,7 @@ bool _udv2wrapper ( wrapper_t * w ) {
     w->ref = w->udv_line->ref;
     w->alt = w->udv_line->all;
     // Allele alternatives already assigned
-    for ( int i = 0; i < w->all_n; i++ ) {
+    for ( int i = 0; i < w->ploidy; i++ ) {
         w->alt_index[i] = i;
     }
     return true;
