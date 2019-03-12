@@ -10,29 +10,12 @@
 #include <htslib/vcf.h>
 #include <htslib/synced_bcf_reader.h>
 #include <stdio.h>
-#include <time.h>
 #include <stdlib.h>
-#include <math.h>
 #include "fileManager.h"
-#include "variator.h"
+#include "allele.h"
 #include "parse_frequency.h"
 #include "wrapper.h"
 
-allele_t * allele_init ( long int size, allele_t * allele ) {
-    // First initialization
-    if ( allele == NULL ) {
-        allele = malloc ( sizeof ( allele_t ) );
-        allele->sequence = NULL;
-    }
-    // Update of internal values
-    allele->buffer_size = floor ( size * 1.5 );
-    allele->sequence = realloc ( allele->sequence, ( sizeof ( char ) ) * allele->buffer_size );
-    // It's necessary to clean the memory
-    memset ( allele->sequence, 0, sizeof ( char ) *allele->buffer_size );
-    allele->pos = 0;
-    allele->off = 0;
-    return allele;
-}
 
 int main ( int argc, char ** argv ) {
     // FASTA
@@ -45,14 +28,19 @@ int main ( int argc, char ** argv ) {
     allele_t * allele[ ALL_N ];
     long int distance;
     char * subseq;
+    int ref_len;
+    int alt_len;
+    int offset;
     // Output
     FILE * output[ ALL_N ];
+    FILE * alignment[ ALL_N ];
     char * str;
     // Statistics
     char * all_check = NULL;
-    int done = 0;
-    int ignored = 0;
-    int udv_collision = 0;
+    unsigned long int done = 0;
+    unsigned long int ignored = 0;
+    unsigned long int udv_collision = 0;
+    unsigned long int less_than_zero = 0;
 
     // Parse arguments
     if ( argc != 5 ) {
@@ -78,6 +66,8 @@ int main ( int argc, char ** argv ) {
     for ( int i = 0; i < ALL_N; i++ ) {
         sprintf ( str, "%s_%d.fa", argv[4], i );
         output[i] = fopen ( str, "w+" );
+        sprintf ( str, "%s_align_%d.fa", argv[4], i );
+        alignment[i] = fopen ( str, "w+" );
     }
 
     // Load of the first sequence
@@ -116,6 +106,11 @@ int main ( int argc, char ** argv ) {
                                 &seq->sequence[ref_pos[i]],
                                 distance
                             );
+                            memset ( 
+                                &allele[i]->alignment[allele[i]->pos],
+                                '=',
+                                distance
+                            );
                         }
                         /*
                          * The allele pointer points to the start of
@@ -123,6 +118,12 @@ int main ( int argc, char ** argv ) {
                          */
                         allele[i]->pos += distance;
                         assert ( w->pos == allele[i]->pos + allele[i]->off );
+                        // The position hasn't been written yet
+                        if ( allele[i]->pos < 0 ){
+                            allele[i]->pos -= distance;
+                            less_than_zero ++;
+                            continue;
+                        }
                         /*
                         * If we want to applicate a certain variation,
                         * reference in the allele and VCF reference
@@ -144,16 +145,31 @@ int main ( int argc, char ** argv ) {
 
                         subseq = w->alt[w->alt_index[i]];
                         // Application of the variation
+                        ref_len = strlen ( w->ref );
+                        alt_len = strlen ( subseq );
+                        offset = ref_len - alt_len;
+                        int min = ( ref_len < alt_len ) ? ref_len : alt_len;
+                        char c = ( ref_len < alt_len ) ? 'd' : 'i';
                         memcpy (
                             &allele[i]->sequence[allele[i]->pos],
                             subseq,
-                            strlen ( subseq )
+                            alt_len
+                        );
+                        memset ( 
+                            &allele[i]->alignment[allele[i]->pos],
+                            '=',
+                            min
+                        );
+                        memset ( 
+                            &allele[i]->alignment[allele[i]->pos + min],
+                            c,
+                            abs ( offset )
                         );
                         // Update of the offset and the position of the allele
-                        allele[i]->off += strlen ( w->ref ) - strlen ( subseq );
-                        allele[i]->pos += strlen ( subseq );
+                        allele[i]->off += offset;
+                        allele[i]->pos += alt_len;
                         // Reference position update
-                        ref_pos[i] += ( distance + strlen ( w->ref ) );
+                        ref_pos[i] += ( distance + ref_len );
                     }
                 } else {
                     udv_collision++;
@@ -168,6 +184,11 @@ int main ( int argc, char ** argv ) {
                 &seq->sequence[ref_pos[i]],
                 distance
             );
+            memset ( 
+                &allele[i]->alignment[allele[i]->pos],
+                '=',
+                distance
+            );
             // Update position
             allele[i]->pos += distance;
             // End of the sequence
@@ -177,24 +198,25 @@ int main ( int argc, char ** argv ) {
         for ( int i = 0; i < ALL_N; i++ ) {
             fprintf ( output[i], ">%s\n", seq->label );
             fprintf ( output[i], "%s\n", allele[i]->sequence );
-            printf ( "%s %d writed on file.\n", seq->label, i );
+            fprintf ( alignment[i], ">%s\n", seq->label );
+            fprintf ( alignment[i], "%s\n", allele[i]->alignment );
         }
-        int sum = done + ignored + udv_collision;
-        printf ( "DONE:\t%d\t%.2f\n", done, done * 100.0 / sum );
-        printf ( "IGNO:\t%d\t%.2f\n", ignored, ignored * 100.0 / sum );
-        printf ( "UDVC:\t%d\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
-        done = 0;
-        ignored = 0;
         // Next sequence
         seq = filemanager_next_seq ( fm, seq );
     }
+    unsigned long int sum = done + ignored + udv_collision + less_than_zero;
+    printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
+    printf ( "IGNO:\t%lu\t%.2f\n", ignored, ignored * 100.0 / sum );
+    printf ( "UDVC:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
+    printf ( "LESS:\t%lu\t%.2f\n", less_than_zero, less_than_zero * 100.0 / sum );
 
     // Cleanup
     for ( int i = 0; i < ALL_N; i++ ) {
-        free ( allele[i]->sequence );
-        free ( allele[i] );
+        allele_destroy ( allele[i] );
         fclose ( output[i] );
+        fclose ( alignment[i] );
     }
+    free ( str );
     wr_destroy ( w );
     filemanager_destroy ( fm );
     exit ( EXIT_SUCCESS );

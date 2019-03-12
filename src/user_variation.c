@@ -103,20 +103,15 @@ variation_t * udv_parse ( char * line ) {
     }
     var->ref = malloc ( sizeof ( char ) * ( strlen ( ref ) + 1 ) );
     strcpy ( var->ref, ref );
-    // Parse first allele
-    char * first_allele = strtok ( NULL, "\t" );
-    if ( first_allele == NULL ) {
-        return NULL;
+    // Parse allele
+    for ( int i = 0; i < ALL_N; i ++ ){
+        char * allele = strtok ( NULL, "\t" );
+        if ( allele == NULL ){
+            return NULL;
+        }
+        var->all[i] = malloc ( sizeof ( char ) * ( strlen ( allele ) + 1 ) );
+        strcpy ( var->all[i], allele );
     }
-    var->all[0] = malloc ( sizeof ( char ) * ( strlen ( first_allele ) + 1 ) );
-    strcpy ( var->all[0], first_allele );
-    // Parse second allele
-    char * second_allele = strtok ( NULL, "\t" );
-    if ( second_allele == NULL ) {
-        return NULL;
-    }
-    var->all[1] = malloc ( sizeof ( char ) * ( strlen ( second_allele ) + 1 ) );
-    strcpy ( var->all[1], second_allele );
     return var;
 }
 
@@ -176,8 +171,9 @@ void udv_destroy ( variation_set_t * set ) {
     for ( int i = 0; i < set->n; i ++ ) {
         free ( set->elements[i]->region );
         free ( set->elements[i]->ref );
-        free ( set->elements[i]->all[0] );
-        free ( set->elements[i]->all[1] );
+        for ( int j = 0; j < ALL_N; j++ ){
+            free ( set->elements[i]->all[j] );
+        }
         free ( set->elements[i] );
     }
     // Free of the array
