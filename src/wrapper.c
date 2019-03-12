@@ -14,7 +14,7 @@
 // Global variables
 double * p = NULL;
 
-wrapper_t * wr_init ( char * vcf_filename, char * udv_filename ) {
+wrapper_t * wr_init ( char * vcf_filename, char * udv_filename, int ploidy ) {
     wrapper_t * w;
     // At least a filename is required
     if ( vcf_filename == NULL && udv_filename == NULL ) {
@@ -31,6 +31,8 @@ wrapper_t * wr_init ( char * vcf_filename, char * udv_filename ) {
     w->used = 0;
     w->udv = NULL;
     w->udv_line = NULL;
+    w->ploidy = ploidy;
+    w->alt_index = malloc ( sizeof ( int ) * ploidy );
 
     // Random number generator
     srand ( time ( NULL ) );
@@ -81,7 +83,7 @@ wrapper_t * wr_init ( char * vcf_filename, char * udv_filename ) {
     // UDV
     if ( udv_filename != NULL ) {
         // Initalize UDV structure
-        w->udv = udv_init ( udv_filename );
+        w->udv = udv_init ( udv_filename, ploidy );
         if ( w->udv == NULL ) {
             return NULL;
         }
@@ -194,7 +196,7 @@ bool _vcf2wrapper ( wrapper_t * w ) {
         p = linear ( w->vcf_line->n_allele, p );
     }
 
-    for ( int i = 0; i < ALL_N; i++ ) {
+    for ( int i = 0; i < w->ploidy; i++ ) {
         // Random decision about the alternatives
         outcome = ( double ) rand() / RAND_MAX;
         threshold = 0;
@@ -215,7 +217,7 @@ bool _udv2wrapper ( wrapper_t * w ) {
     w->ref = w->udv_line->ref;
     w->alt = w->udv_line->all;
     // Allele alternatives already assigned
-    for ( int i = 0; i < ALL_N; i++ ) {
+    for ( int i = 0; i < w->ploidy; i++ ) {
         w->alt_index[i] = i;
     }
     return true;
@@ -260,6 +262,7 @@ void wr_destroy ( wrapper_t * w ) {
     if ( w->udv != NULL )
         udv_destroy ( w->udv );
     // Wrapper
+    free ( w->alt_index );
     free ( w );
     free ( p );
     return;
