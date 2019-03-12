@@ -16,6 +16,8 @@ struct allele_t {
     char * alignment; // pointer to the alignment of the sequence
     long int buffer_size; // size of the sequence
     long int pos; // current position
+    long int ref; // corresponding reference position
+    long int alg; // corresponding alignment position
     long int off; // offset from reference position
 };
 
@@ -27,6 +29,17 @@ struct allele_t {
  * @returns     the initialized structure
  */
 allele_t * allele_init ( long int size, allele_t * allele );
+
+/*
+ * Sets the allele pointer to the position
+ * corresponding to the required reference
+ * position.
+ * This function must be used with rising input.
+ *
+ * @param       position relative to the reference
+ * @return      the corresponding offset
+ */
+int allele_seek ( int position, allele_t * allele );
 
 /*
  * Deallocates an allele
