@@ -29,6 +29,8 @@ wrapper_t * wr_init ( char * vcf_filename, char * udv_filename ) {
     w->present = 0;
     w->seek = 0;
     w->used = 0;
+    w->udv = NULL;
+    w->udv_line = NULL;
 
     // Random number generator
     srand ( time ( NULL ) );
@@ -255,7 +257,8 @@ void wr_destroy ( wrapper_t * w ) {
     // VCF
     bcf_sr_destroy ( w->sr );
     // UDV
-    udv_destroy ( w->udv );
+    if ( w->udv != NULL )
+        udv_destroy ( w->udv );
     // Wrapper
     free ( w );
     free ( p );
