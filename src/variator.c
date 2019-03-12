@@ -11,13 +11,26 @@
 #include <htslib/synced_bcf_reader.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <libgen.h>
 #include "fileManager.h"
 #include "allele.h"
 #include "parse_frequency.h"
 #include "wrapper.h"
 
+void usage ( char * name){
+    fprintf(stderr, "Usage: %s [-u udv_file] [-o output_name] fasta_file vcf_file\n", name );
+}
 
 int main ( int argc, char ** argv ) {
+    // Parsing
+    int opt;
+    // Filenames
+    char * fasta_fn = NULL;
+    char * udv_fn = NULL;
+    char * vcf_fn = NULL;
+    char * out_fn = NULL;
     // FASTA
     struct filemanager * fm;
     struct sequence_t * seq;
@@ -42,18 +55,40 @@ int main ( int argc, char ** argv ) {
     unsigned long int udv_collision = 0;
     unsigned long int less_than_zero = 0;
 
-    // Parse arguments
-    if ( argc != 5 ) {
-        printf ( "usage: variator vcf_filename udv_filename fasta_filename output_filename\n" );
-        exit ( EXIT_FAILURE );
+    while ((opt = getopt(argc, argv, "u:o:")) != -1) {
+        switch (opt) {
+            case 'u':
+                udv_fn = optarg;
+                break;
+            case 'o':
+                out_fn = optarg;
+                break;
+            case '?':
+                if (optopt == 'u' || optopt == 'o')
+                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+                exit ( EXIT_FAILURE );
+            default:
+                usage ( argv[0] );
+                exit(EXIT_FAILURE);
+        }
     }
-
+    // Non optional arguments
+    if ( argc - optind < 2 ){
+        usage ( argv[0] );
+        exit(EXIT_FAILURE);
+    }
+    fasta_fn = argv[optind++];
+    vcf_fn = argv[optind];
 
     // Initialize wrapper
-    w = wr_init ( argv[1], argv[2] );
+    w = wr_init ( vcf_fn, udv_fn );
 
     // FASTA file
-    fm = filemanager_init ( argv[3] );
+    fm = filemanager_init ( fasta_fn );
     if ( fm == NULL ) {
         exit ( EXIT_FAILURE );
     }
@@ -62,11 +97,15 @@ int main ( int argc, char ** argv ) {
      * Output files, one per allele
      * [filename_0.fa, filename_N.fa)
      */
-    str = malloc ( sizeof ( char ) * ( strlen ( argv[4] ) + 20 ) );
+    if ( out_fn == NULL ){
+        out_fn = basename ( fasta_fn );
+        out_fn = strtok ( out_fn, "." );
+    }
+    str = malloc ( sizeof ( char ) * ( strlen ( out_fn ) + 20 ) );
     for ( int i = 0; i < ALL_N; i++ ) {
-        sprintf ( str, "%s_%d.fa", argv[4], i );
+        sprintf ( str, "%s_%d.fa", out_fn, i );
         output[i] = fopen ( str, "w+" );
-        sprintf ( str, "%s_align_%d.fa", argv[4], i );
+        sprintf ( str, "%s_align_%d.fa",out_fn, i );
         alignment[i] = fopen ( str, "w+" );
     }
 
