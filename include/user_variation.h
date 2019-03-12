@@ -13,10 +13,6 @@
 #include <uthash.h>
 #include <stdbool.h>
 
-#ifndef ALL_N
-#define ALL_N 2
-#endif
-
 typedef struct variation_t variation_t;
 typedef struct variation_set_t variation_set_t;
 
@@ -24,7 +20,7 @@ struct variation_t {
     char * region;
     int pos;
     char * ref;
-    char * all[ALL_N];
+    char ** all;
 };
 
 struct entry {
@@ -35,6 +31,7 @@ struct entry {
 
 struct variation_set_t {
     int n; // number of elements
+    int all_n;
     char * current_region; // last region visited
     int next_variation; // index of the next line
     variation_t ** elements; // variation parsed
@@ -46,18 +43,20 @@ struct variation_set_t {
  * the set of user defined variations.
  *
  * @param filename path to the file to be parsed
+ * @param ploidy   number of alleles
  * @returns pointer to the initialized set, NULL otherwise
  */
-variation_set_t * udv_init ( char * filename );
+variation_set_t * udv_init ( char * filename, int ploidy );
 
 /*
  * Parse a line of the user defined variations
  * elements must be tab separated.
  *
  * @param line line containing the variation
+ * @param ploidy   number of alleles
  * @returns pointer to the structure, NULL in case of errors
  */
-variation_t * udv_parse ( char * line );
+variation_t * udv_parse ( char * line, int ploidy );
 
 /*
  * Add a variation to the set

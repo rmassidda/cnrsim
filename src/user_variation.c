@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include "user_variation.h"
 
-variation_set_t * udv_init ( char * filename ) {
+variation_set_t * udv_init ( char * filename, int ploidy ) {
     // File related variables
     FILE * udv_file;
     size_t len = 0;
@@ -39,6 +39,7 @@ variation_set_t * udv_init ( char * filename ) {
     udv_set->next_variation = 0;
     udv_set->elements = NULL;
     udv_set->region_index = NULL;
+    udv_set->all_n = ploidy;
 
 
     // Read line
@@ -48,7 +49,7 @@ variation_set_t * udv_init ( char * filename ) {
             line[read - 1] = '\0';
             read--;
         }
-        udv_var = udv_parse ( line );
+        udv_var = udv_parse ( line, ploidy );
         // Variation correctly parsed
         if ( udv_var != NULL ) {
             // Add to the set
@@ -80,9 +81,10 @@ variation_set_t * udv_init ( char * filename ) {
     return udv_set;
 }
 
-variation_t * udv_parse ( char * line ) {
+variation_t * udv_parse ( char * line, int ploidy ) {
     // Allocate variation
     variation_t * var = malloc ( sizeof ( variation_t ) );
+    var->all = malloc ( sizeof ( char* ) * ploidy );
     // Parse region
     char * region = strtok ( line, "\t" );
     if ( region == NULL ) {
@@ -104,7 +106,7 @@ variation_t * udv_parse ( char * line ) {
     var->ref = malloc ( sizeof ( char ) * ( strlen ( ref ) + 1 ) );
     strcpy ( var->ref, ref );
     // Parse allele
-    for ( int i = 0; i < ALL_N; i ++ ){
+    for ( int i = 0; i < ploidy; i ++ ){
         char * allele = strtok ( NULL, "\t" );
         if ( allele == NULL ){
             return NULL;
@@ -168,12 +170,14 @@ void udv_destroy ( variation_set_t * set ) {
         free ( udv_entry );
     }
     // Free of the parsed lines
-    for ( int i = 0; i < set->n; i ++ ) {
+    int i;
+    for ( i = 0; i < set->n; i ++ ) {
         free ( set->elements[i]->region );
         free ( set->elements[i]->ref );
-        for ( int j = 0; j < ALL_N; j++ ){
+        for ( int j = 0; j < set->all_n; j++ ){
             free ( set->elements[i]->all[j] );
         }
+        free ( set->elements[i]->all );
         free ( set->elements[i] );
     }
     // Free of the array
@@ -192,47 +196,3 @@ void udv_print ( variation_t * var ) {
         var->all[1] );
 }
 
-// Main function to test the library
-int test ( char * filename ) {
-    // Variation set
-    variation_set_t * set;
-
-    // Initialize set
-    set = udv_init ( filename );
-
-    // Test: read all the lines
-    while ( set->next_variation < set->n ) {
-        udv_print ( udv_get_line ( set ) );
-    }
-
-    // Read region chr7
-    if ( udv_seek ( set, "chr7" ) ) {
-        while ( udv_next_line ( set ) ) {
-            udv_print ( udv_get_line ( set ) );
-        }
-    }
-
-    // Read region chr1
-    if ( udv_seek ( set, "chr1" ) ) {
-        while ( udv_next_line ( set ) ) {
-            udv_print ( udv_get_line ( set ) );
-        }
-    }
-
-    // Read region chrY
-    if ( udv_seek ( set, "chrY" ) ) {
-        while ( udv_next_line ( set ) ) {
-            udv_print ( udv_get_line ( set ) );
-        }
-    }
-
-    // Read region chrX
-    if ( udv_seek ( set, "chrX" ) ) {
-        while ( udv_next_line ( set ) ) {
-            udv_print ( udv_get_line ( set ) );
-        }
-    }
-
-    udv_destroy ( set );
-    return 0;
-}

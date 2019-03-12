@@ -46,7 +46,8 @@ struct wrapper_t {
     int pos; // position of the variation
     char * ref; // reference
     char ** alt; // alternatives
-    int alt_index[ALL_N]; // alternative chosen for each allele
+    int * alt_index; // alternative chosen for each allele
+    int all_n;
 };
 
 /*
@@ -60,7 +61,7 @@ struct wrapper_t {
  * @param udv_filename path to the user defined variants file
  * @returns pointer to the initialized wrapper, NULL otherwise
  */
-wrapper_t * wr_init ( char * udv_filename, char * vcf_filename );
+wrapper_t * wr_init ( char * udv_filename, char * vcf_filename, int ploidy );
 
 /*
  * Sets the position of the readers

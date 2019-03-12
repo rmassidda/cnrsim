@@ -20,12 +20,13 @@
 #include "wrapper.h"
 
 void usage ( char * name){
-    fprintf(stderr, "Usage: %s [-u udv_file] [-o output_name] fasta_file vcf_file\n", name );
+    fprintf(stderr, "Usage: %s [-n number of alleles] [-u udv_file] [-o output_name] fasta_file vcf_file\n", name );
 }
 
 int main ( int argc, char ** argv ) {
     // Parsing
     int opt;
+    int all_n = 2;
     // Filenames
     char * fasta_fn = NULL;
     char * udv_fn = NULL;
@@ -34,19 +35,19 @@ int main ( int argc, char ** argv ) {
     // FASTA
     struct filemanager * fm;
     struct sequence_t * seq;
-    long int ref_pos[ALL_N];
+    long int * ref_pos;
     // Wrapper
     wrapper_t * w;
     // Alleles
-    allele_t * allele[ ALL_N ];
+    allele_t ** allele;
     long int distance;
     char * subseq;
     int ref_len;
     int alt_len;
     int offset;
     // Output
-    FILE * output[ ALL_N ];
-    FILE * alignment[ ALL_N ];
+    FILE ** output;
+    FILE ** alignment;
     char * str;
     // Statistics
     char * all_check = NULL;
@@ -55,8 +56,11 @@ int main ( int argc, char ** argv ) {
     unsigned long int udv_collision = 0;
     unsigned long int less_than_zero = 0;
 
-    while ((opt = getopt(argc, argv, "u:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "n:u:o:")) != -1) {
         switch (opt) {
+            case 'n':
+                all_n = atoi ( optarg );
+                break;
             case 'u':
                 udv_fn = optarg;
                 break;
@@ -84,8 +88,15 @@ int main ( int argc, char ** argv ) {
     fasta_fn = argv[optind++];
     vcf_fn = argv[optind];
 
+    // Allocate
+    ref_pos = malloc ( sizeof ( long int ) * all_n );
+    allele = malloc ( sizeof ( allele_t* ) * all_n );
+    output = malloc ( sizeof ( FILE* ) * all_n );
+    alignment = malloc ( sizeof ( FILE* ) * all_n );
+
+
     // Initialize wrapper
-    w = wr_init ( vcf_fn, udv_fn );
+    w = wr_init ( vcf_fn, udv_fn, all_n );
 
     // FASTA file
     fm = filemanager_init ( fasta_fn );
@@ -102,7 +113,7 @@ int main ( int argc, char ** argv ) {
         out_fn = strtok ( out_fn, "." );
     }
     str = malloc ( sizeof ( char ) * ( strlen ( out_fn ) + 20 ) );
-    for ( int i = 0; i < ALL_N; i++ ) {
+    for ( int i = 0; i < all_n; i++ ) {
         sprintf ( str, "%s_%d.fa", out_fn, i );
         output[i] = fopen ( str, "w+" );
         sprintf ( str, "%s_align_%d.fa",out_fn, i );
@@ -112,14 +123,14 @@ int main ( int argc, char ** argv ) {
     // Load of the first sequence
     seq = filemanager_next_seq ( fm, NULL );
     // Initialize alleles
-    for ( int i = 0; i < ALL_N; i++ ) {
+    for ( int i = 0; i < all_n; i++ ) {
         allele[i] = allele_init ( 0, NULL );
     }
 
     // While there are sequences to read in the FASTA file
     while ( seq != NULL ) {
         // Resize allele
-        for ( int i = 0; i < ALL_N; i++ ) {
+        for ( int i = 0; i < all_n; i++ ) {
             allele[i] = allele_init ( seq->sequence_size, allele[i] );
             ref_pos[i] = 0;
         }
@@ -131,7 +142,7 @@ int main ( int argc, char ** argv ) {
             while ( wr_region ( w ) ) {
                 if ( wr_update_wrapper ( w ) ) {
                     // Per allele
-                    for ( int i = 0; i < ALL_N; i++ ) {
+                    for ( int i = 0; i < all_n; i++ ) {
                         // Distance between the reference and the variation pointers
                         distance = w->pos - ref_pos[i];
                         if ( distance > 0 ) {
@@ -216,7 +227,7 @@ int main ( int argc, char ** argv ) {
             }
         }
         // Copy of the remaining part of the sequence
-        for ( int i = 0; i < ALL_N; i++ ) {
+        for ( int i = 0; i < all_n; i++ ) {
             distance = seq->sequence_size - ref_pos[i];
             memcpy (
                 &allele[i]->sequence[allele[i]->pos],
@@ -234,7 +245,7 @@ int main ( int argc, char ** argv ) {
             allele[i]->pos = 0;
         }
         // Write of the sequence on file
-        for ( int i = 0; i < ALL_N; i++ ) {
+        for ( int i = 0; i < all_n; i++ ) {
             fprintf ( output[i], ">%s\n", seq->label );
             fprintf ( output[i], "%s\n", allele[i]->sequence );
             fprintf ( alignment[i], ">%s\n", seq->label );
@@ -250,11 +261,15 @@ int main ( int argc, char ** argv ) {
     printf ( "LESS:\t%lu\t%.2f\n", less_than_zero, less_than_zero * 100.0 / sum );
 
     // Cleanup
-    for ( int i = 0; i < ALL_N; i++ ) {
+    for ( int i = 0; i < all_n; i++ ) {
         allele_destroy ( allele[i] );
         fclose ( output[i] );
         fclose ( alignment[i] );
     }
+    free ( ref_pos );
+    free ( allele );
+    free ( output );
+    free ( alignment );
     free ( str );
     wr_destroy ( w );
     filemanager_destroy ( fm );
