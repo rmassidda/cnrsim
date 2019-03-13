@@ -116,7 +116,7 @@ int main ( int argc, char ** argv ) {
     for ( int i = 0; i < ploidy; i++ ) {
         sprintf ( str, "%s_%d.fa", out_fn, i );
         output[i] = fopen ( str, "w+" );
-        sprintf ( str, "%s_align_%d.fa",out_fn, i );
+        sprintf ( str, "%s_%d.fa.alg",out_fn, i );
         alignment[i] = fopen ( str, "w+" );
     }
 
