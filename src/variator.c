@@ -40,20 +40,14 @@ int main ( int argc, char ** argv ) {
     // Alleles
     allele_t ** allele;
     long int distance;
-    char * subseq;
-    int ref_len;
-    int alt_len;
-    int offset;
     // Output
     FILE ** output;
     FILE ** alignment;
     char * str;
     // Statistics
-    char * all_check = NULL;
     unsigned long int done = 0;
     unsigned long int ignored = 0;
     unsigned long int udv_collision = 0;
-    unsigned long int less_than_zero = 0;
 
     while ((opt = getopt(argc, argv, "n:u:o:")) != -1) {
         switch (opt) {
@@ -140,7 +134,6 @@ int main ( int argc, char ** argv ) {
                 if ( wr_update_wrapper ( w ) ) {
                     // Per allele
                     for ( int i = 0; i < ploidy; i++ ) {
-                        printf ( "%d\n", w->pos );
                         // Distance between the reference and the variation pointers
                         distance = w->pos - allele[i]->ref;
                         if ( distance > 0 ) {
@@ -158,50 +151,17 @@ int main ( int argc, char ** argv ) {
 
                         // Updates the allele position
                         allele_seek ( w->pos, allele[i] );
-                        printf ( "%ld\t%ld\t%ld\n", allele[i]->ref, allele[i]->pos, allele[i]->alg );
-                        assert ( w->pos == allele[i]->pos + allele[i]->off );
 
                         /*
-                        * If we want to applicate a certain variation,
-                        * reference in the allele and VCF reference
-                        * have to coincide.
-                        */
-                        //all_check = & ( allele[i]->sequence[allele[i]->pos] );
+                         * If we want to applicate a certain variation,
+                         * reference in the allele and VCF reference
+                         * have to coincide.
+                         */
 
-                        if ( distance <= 0 ) {
-                            // The variation describes something that is already written
-                            //if ( strncmp ( all_check, w->ref, strlen ( all_check ) ) != 0 ) {
-                                // The reference and the allele doesn't match
-                                // due to previous variations
-                                //allele[i]->pos -= distance;
-                                ignored ++;
-                                continue;
-                            //}
-                        }
-                        done ++;
-
-                        subseq = w->alt[w->alt_index[i]];
+                        // Alternative
+                        allele_variation ( w->ref, w->alt[w->alt_index[i]], allele[i]);
                         // Application of the variation
-                        ref_len = strlen ( w->ref );
-                        alt_len = strlen ( subseq );
-                        offset = ref_len - alt_len;
-                        int min = ( ref_len < alt_len ) ? ref_len : alt_len;
-                        char c = ( ref_len < alt_len ) ? 'i' : 'd';
-                        memcpy (
-                            &allele[i]->sequence[allele[i]->pos],
-                            subseq,
-                            alt_len
-                        );
-                        memset ( 
-                            &allele[i]->alignment[allele[i]->alg],
-                            '=',
-                            min
-                        );
-                        memset ( 
-                            &allele[i]->alignment[allele[i]->alg],
-                            c,
-                            abs ( offset )
-                        );
+                        done ++;
                     }
                 } else {
                     udv_collision++;
@@ -233,11 +193,10 @@ int main ( int argc, char ** argv ) {
         // Next sequence
         seq = filemanager_next_seq ( fm, seq );
     }
-    unsigned long int sum = done + ignored + udv_collision + less_than_zero;
+    unsigned long int sum = done + ignored + udv_collision;
     printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
     printf ( "IGNO:\t%lu\t%.2f\n", ignored, ignored * 100.0 / sum );
     printf ( "UDVC:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
-    printf ( "LESS:\t%lu\t%.2f\n", less_than_zero, less_than_zero * 100.0 / sum );
 
     // Cleanup
     for ( int i = 0; i < ploidy; i++ ) {
