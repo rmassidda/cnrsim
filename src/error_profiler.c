@@ -11,14 +11,66 @@
 #include <stdio.h>
 #include <htslib/sam.h>
 #include <math.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <assert.h>
 #include "align.h"
+#include "allele.h"
 #include "fileManager.h"
 #include "translate_notation.h"
 
+void usage ( char * name){
+    fprintf(stderr, "Usage: %s [-d dictionary] [-a] bam_file fasta_file [allele_file ...]\n", name );
+}
+
+void dump_read ( int i, char * alias, int pos, int start, struct sequence_t * curr_seq, char * alignment, aligner_t * aligner, char * read, int gap_1, int gap_2, int len ){
+    // Useless print
+    printf ( "%d)%s\t%d\t%d\n", i, alias, pos, start + aligner->start );
+    // Reference
+    printf ( "%.*s\n", ( len + gap_1 + gap_2 ), &curr_seq->sequence[start]);
+    // Read
+    int z;
+    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
+    printf("%s\n", read );
+    // Alignment
+    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
+    printf ( "%s\n", alignment );
+    // Aligned Read
+    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
+    int j = 0;
+    for ( z = 0; z < strlen (alignment); z++ ){
+        if ( alignment[i] == '!' ){
+            printf ( "|" );
+            j++;
+        }
+        else if ( alignment[i] == 'L' ){
+            printf ( "|" );
+        } 
+        else if ( alignment[i] == 'T' ){
+            j++;
+        }
+        else{
+            printf ( "%c", read[j] );
+            j++;
+        }
+    }
+    printf ( "\n\n" );
+}
+
 int main ( int argc, char ** argv ) {
+    // Parser
+    int opt;
+    char * dictionary = NULL;
+    bool alternative = false;
+    char * bam_fn;
+    char * fasta_fn = NULL;
+    int ploidy;
     // FASTA
-    struct filemanager * fm;
-    struct sequence_t * seq;
+    struct filemanager ** fm;
+    struct sequence_t ** seq;
+    allele_t ** allele;
+    // Pointers
+    struct sequence_t * curr_seq;
     // BAM
     htsFile *fp;
     bam_hdr_t *hdr;
@@ -38,44 +90,116 @@ int main ( int argc, char ** argv ) {
     int gap_2 = 0;
     int start = 0;
 
-    if ( argc != 4 ) {
-        printf ( "usage: %s fasta bam dictionary\n", argv[0]);
-        exit ( EXIT_FAILURE );
+    while ((opt = getopt(argc, argv, "d:a")) != -1) {
+        switch (opt) {
+            case 'd':
+                dictionary = optarg;
+                break;
+            case 'a':
+                alternative = true;
+                break;
+            case '?':
+                if (optopt == 'd')
+                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+                exit ( EXIT_FAILURE );
+            default:
+                usage ( argv[0] );
+                exit(EXIT_FAILURE);
+        }
     }
 
-    // FASTA file
-    fm = filemanager_init ( argv[1] );
-    if ( fm == NULL ) {
-        exit ( EXIT_FAILURE );
+    if ( dictionary != NULL ){
+        // Alias dictionary
+        alias_index = tr_init ( dictionary );
+        if ( alias_index == NULL ){
+            perror ( "Can't load alias dictionary" );
+            exit ( EXIT_FAILURE );
+        }
+    }
+
+    // Non optional arguments
+    if ( argc - optind < 2 ){
+        usage ( argv[0] );
+        exit(EXIT_FAILURE);
     }
 
     // BAM file
-    fp = hts_open ( argv[2], "r" );
+    bam_fn = argv[optind++];
+    fp = hts_open ( bam_fn, "r" );
     hdr = sam_hdr_read ( fp );
     line = bam_init1 ();
-
     // BAM index
-    index = bam_index_load ( argv[2] );
+    index = bam_index_load ( bam_fn );
     if ( index == NULL ){
         // File not indexed
         perror ( "Can't load BAM index" );
         exit ( EXIT_FAILURE );
     }
 
-    // Alias dictionary
-    alias_index = tr_init ( argv[3] );
-    if ( alias_index == NULL ){
-        perror ( "Can't load alias dictionary" );
-        exit ( EXIT_FAILURE );
-    }
+    // FASTA files
+    ploidy = alternative ? ( argc - optind ) : 1;
 
-    // Load of the first sequence
-    seq = filemanager_next_seq ( fm, NULL );
-    
+    // Malloc of the structures
+    fm = malloc ( sizeof ( struct filemanager_t * ) * 2 * ploidy );
+    seq = malloc ( sizeof ( struct sequence_t * ) * 2 * ploidy);
+    allele = malloc ( sizeof ( struct allele_t * ) * ploidy);
+
+    // First read of all the sequences
+    for ( int i = 0; i < ploidy; i ++ ){
+        // Read of the allele
+        fm[i] = filemanager_init ( argv[optind] );
+        if ( fm[i] == NULL ){
+            exit (EXIT_FAILURE);
+        }
+        seq[i] = filemanager_next_seq ( fm[i], NULL );
+        if ( seq[i] == NULL ){
+            exit ( EXIT_FAILURE );
+        }
+        // Alignment of the allele
+        char * align_string = NULL;
+        if ( i != 0 ){
+            int j = i + ploidy - 1;
+            // Name of the alignment file
+            fasta_fn = realloc ( fasta_fn, sizeof(char) * ( strlen(argv[optind]) + 5 ) );
+            strcpy ( fasta_fn, argv[optind] );
+            strcat ( fasta_fn, ".alg" );
+            // Read of the alignment
+            fm [j] = filemanager_init ( fasta_fn );
+            if ( fm[j] == NULL ){
+                exit ( EXIT_FAILURE );
+            }
+            seq [j] = filemanager_next_seq ( fm[j], NULL );
+            if ( seq [j] == NULL ){
+                exit ( EXIT_FAILURE );
+            }
+            align_string = seq[j]->sequence;
+        }
+        // Allele creation
+        allele[i] = allele_point (
+                seq[i]->sequence_size,
+                seq[i]->sequence,
+                align_string,
+                NULL
+                );
+        optind ++;
+    }
+    curr_seq = seq[0];
+
+    free ( fasta_fn );
+
     // While there are sequences to read in the FASTA file
-    while ( seq != NULL ) {
+    while ( curr_seq != NULL ) {
         // Seek on the BAM
-        alias = tr_translate ( alias_index, seq->label );
+        if ( dictionary != NULL ){
+            alias = tr_translate ( alias_index, curr_seq->label );
+        }
+        else{
+            alias = curr_seq->label;
+        }
         itr = bam_itr_querys( index, hdr, alias);
         if ( itr != NULL ){
             while( bam_itr_next( fp, itr, line ) > 0){
@@ -83,12 +207,10 @@ int main ( int argc, char ** argv ) {
                 pos = line->core.pos;
                 len = line->core.l_qseq;
                 uint8_t *q = bam_get_seq( line ); //quality string        
-                
+
                 // Interval of the reference
                 gap_1 = floor ( len / 4 );
                 gap_2 = gap_1;
-                start = pos - gap_1;
-                // TODO: check if start/end are valid coordinates
 
                 // Read string
                 read = realloc ( read, sizeof ( char ) * ( len + 1 ) );
@@ -98,52 +220,60 @@ int main ( int argc, char ** argv ) {
                 }
                 read[i] = 0;
 
-                // Align
-                aligner = al_init ( aligner, &seq->sequence[start], len + gap_2 + gap_1, read );
-                alignment = build_alignment ( aligner );
+                for ( i = 0; i < ploidy; i ++ ){
+                    curr_seq = seq[i];
+                    // Seek on the allele
+                    allele_seek ( pos, allele[i] );
+                    start = allele[i]->pos - gap_1;
+                    printf ( "%d\t%ld\n", pos, allele[i]->pos );
 
-                // Useless print
-                printf ( "%s\t%d\t%d\n", alias, pos, start + aligner->start );
-                // Reference
-                printf ( "%.*s\n", ( len + gap_1 + gap_2 ), &seq->sequence[start]);
-                // Read
-                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
-                printf("%s\n", read );
-                // Alignment
-                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
-                printf ( "%s\n", alignment );
-                // Aligned Read
-                for ( i = 0; i < aligner->start; i ++ ) printf ( " " );
-                int j = 0;
-                for ( i = 0; i < strlen (alignment); i++ ){
-                    if ( alignment[i] == '!' ){
-                        printf ( "|" );
-                        j++;
-                    }
-                    else if ( alignment[i] == 'L' ){
-                        printf ( "|" );
-                    } 
-                    else if ( alignment[i] == 'T' ){
-                        j++;
-                    }
-                    else{
-                        printf ( "%c", read[j] );
-                        j++;
-                    }
-
+                    // Align
+                    aligner = al_init ( aligner, &curr_seq->sequence[start], len + gap_2 + gap_1, read );
+                    alignment = build_alignment ( aligner );
+                    dump_read ( i, alias, pos, start, curr_seq, alignment, aligner, read, gap_1, gap_2, len );
                 }
-                printf ( "\n\n" );
             }
         }		
         // Next sequence
-        seq = filemanager_next_seq ( fm, seq );
+        for ( int i = 0; i < ploidy; i ++ ){
+            seq[i] = filemanager_next_seq ( fm[i], seq[i] );
+            char * align_string = NULL;
+            if ( i != 0 ){
+                int j = i + ploidy - 1;
+                seq[j] = filemanager_next_seq ( fm[j], seq[j] );
+                if ( seq[j] != NULL ){
+                    align_string = seq[j]->sequence;
+                }
+            }
+            if ( seq[i] != NULL) {
+                // Update allele
+                allele[i] = allele_point (
+                        seq[i]->sequence_size,
+                        seq[i]->sequence,
+                        align_string,
+                        allele[i]
+                        );
+            }
+        }
+        curr_seq = seq[0];
     }
-    
+
     // Cleanup
-    filemanager_destroy ( fm );
+    for ( int i = 0; i < ploidy; i ++ ){
+        filemanager_destroy ( fm[i] );
+        free ( allele[i] );
+        if ( i != 0 ){
+            int j = i + ploidy - 1;
+            filemanager_destroy ( fm [j] );
+        }
+    }
+    free ( fm );
+    free ( seq );
+    free ( allele );
     bam_destroy1( line );
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
+    hts_idx_destroy ( index );
     sam_close( fp );
     free ( read );
     tr_destroy ( alias_index );
