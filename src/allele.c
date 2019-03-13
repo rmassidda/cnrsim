@@ -31,9 +31,28 @@ allele_t * allele_init ( long int size, allele_t * allele ) {
         allele->ref = 0;
         allele->alg = 0;
         return allele;
+}
+
+allele_t * allele_point ( long int size, char * sequence, char * alignment, allele_t * allele ){
+    if ( allele == NULL ){
+        allele = malloc ( sizeof ( allele_t ) );
     }
+    allele->buffer_size = size;
+    allele->sequence = sequence;
+    allele->alignment = alignment;
+    allele->pos = 0;
+    allele->off = 0;
+    allele->ref = 0;
+    allele->alg = 0;
+    return allele;
+}
 
 int allele_seek ( int position, allele_t * allele ){
+    if ( allele->alignment == NULL ){
+        allele->pos = position;
+        allele->ref = position;
+        return allele->pos;
+    }
     while ( position > allele->ref ){
         // The structure contains the offset
         // computed up to the allele->ref position

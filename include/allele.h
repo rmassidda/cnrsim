@@ -31,6 +31,18 @@ struct allele_t {
 allele_t * allele_init ( long int size, allele_t * allele );
 
 /*
+ * Initialize an allele without allocating memory,
+ * using pointer to external arrays.
+ *
+ * @param size size of the reference
+ * @param sequence sequence
+ * @param alignment string containing the alignment
+ * @param allele allele to be initialized
+ * @returns the initialized structure
+ */
+allele_t * allele_point ( long int size, char * sequence, char * alignment, allele_t * allele );
+
+/*
  * Sets the allele pointer to the position
  * corresponding to the required reference
  * position.
