@@ -53,11 +53,14 @@ allele_t * allele_point ( long int size, char * sequence, char * alignment, alle
  */
 int allele_seek ( int position, allele_t * allele );
 
+int allele_variation ( char * ref, char * alt, allele_t * allele );
+
 /*
  * Deallocates an allele
  *
  * @param       allele  allele to be deallocated
  */
 void allele_destroy ( allele_t * allele );
+void allele_dump ( allele_t * allele );
 
 #endif
