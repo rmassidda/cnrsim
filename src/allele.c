@@ -23,9 +23,9 @@ allele_t * allele_init ( long int size, allele_t * allele ) {
         allele->buffer_size = floor ( size * 1.5 );
         allele->sequence = realloc ( allele->sequence, ( sizeof ( char ) ) * allele->buffer_size );
         allele->alignment = realloc ( allele->alignment, ( sizeof ( char ) ) * allele->buffer_size );
-        // It's necessary to clean the memory
+        // Initial conditions
         memset ( allele->sequence, 0, sizeof ( char ) *allele->buffer_size );
-        memset ( allele->alignment, 0, sizeof ( char ) *allele->buffer_size );
+        memset ( allele->alignment, '=', sizeof ( char ) *allele->buffer_size );
         allele->pos = 0;
         allele->off = 0;
         allele->ref = 0;
@@ -73,7 +73,7 @@ int allele_seek ( int position, allele_t * allele ){
         allele->ref ++;
     }
     // Update of the position
-    allele->pos = position - allele->off;
+    allele->pos = allele->ref - allele->off;
     return allele->pos;
 }
 

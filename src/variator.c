@@ -35,7 +35,6 @@ int main ( int argc, char ** argv ) {
     // FASTA
     struct filemanager * fm;
     struct sequence_t * seq;
-    long int * ref_pos;
     // Wrapper
     wrapper_t * w;
     // Alleles
@@ -89,7 +88,6 @@ int main ( int argc, char ** argv ) {
     vcf_fn = argv[optind];
 
     // Allocate
-    ref_pos = malloc ( sizeof ( long int ) * ploidy );
     allele = malloc ( sizeof ( allele_t* ) * ploidy );
     output = malloc ( sizeof ( FILE* ) * ploidy );
     alignment = malloc ( sizeof ( FILE* ) * ploidy );
@@ -132,7 +130,6 @@ int main ( int argc, char ** argv ) {
         // Resize allele
         for ( int i = 0; i < ploidy; i++ ) {
             allele[i] = allele_init ( seq->sequence_size, allele[i] );
-            ref_pos[i] = 0;
         }
         // Label separated by white space
         fprintf ( stdout, "%s\n", seq->label );
@@ -143,8 +140,9 @@ int main ( int argc, char ** argv ) {
                 if ( wr_update_wrapper ( w ) ) {
                     // Per allele
                     for ( int i = 0; i < ploidy; i++ ) {
+                        printf ( "%d\n", w->pos );
                         // Distance between the reference and the variation pointers
-                        distance = w->pos - ref_pos[i];
+                        distance = w->pos - allele[i]->ref;
                         if ( distance > 0 ) {
                             /*
                              * The variation starts far from the current
@@ -153,43 +151,32 @@ int main ( int argc, char ** argv ) {
                              */
                             memcpy (
                                 &allele[i]->sequence[allele[i]->pos],
-                                &seq->sequence[ref_pos[i]],
-                                distance
-                            );
-                            memset ( 
-                                &allele[i]->alignment[allele[i]->pos],
-                                '=',
+                                &seq->sequence[allele[i]->ref],
                                 distance
                             );
                         }
-                        /*
-                         * The allele pointer points to the start of
-                         * the variation, according to the offset.
-                         */
-                        allele[i]->pos += distance;
+
+                        // Updates the allele position
+                        allele_seek ( w->pos, allele[i] );
+                        printf ( "%ld\t%ld\t%ld\n", allele[i]->ref, allele[i]->pos, allele[i]->alg );
                         assert ( w->pos == allele[i]->pos + allele[i]->off );
-                        // The position hasn't been written yet
-                        if ( allele[i]->pos < 0 ){
-                            allele[i]->pos -= distance;
-                            less_than_zero ++;
-                            continue;
-                        }
+
                         /*
                         * If we want to applicate a certain variation,
                         * reference in the allele and VCF reference
                         * have to coincide.
                         */
-                        all_check = & ( allele[i]->sequence[allele[i]->pos] );
+                        //all_check = & ( allele[i]->sequence[allele[i]->pos] );
 
                         if ( distance <= 0 ) {
                             // The variation describes something that is already written
-                            if ( strncasecmp ( all_check, w->ref, strlen ( all_check ) ) != 0 ) {
+                            //if ( strncmp ( all_check, w->ref, strlen ( all_check ) ) != 0 ) {
                                 // The reference and the allele doesn't match
                                 // due to previous variations
-                                allele[i]->pos -= distance;
+                                //allele[i]->pos -= distance;
                                 ignored ++;
                                 continue;
-                            }
+                            //}
                         }
                         done ++;
 
@@ -199,27 +186,22 @@ int main ( int argc, char ** argv ) {
                         alt_len = strlen ( subseq );
                         offset = ref_len - alt_len;
                         int min = ( ref_len < alt_len ) ? ref_len : alt_len;
-                        char c = ( ref_len < alt_len ) ? 'd' : 'i';
+                        char c = ( ref_len < alt_len ) ? 'i' : 'd';
                         memcpy (
                             &allele[i]->sequence[allele[i]->pos],
                             subseq,
                             alt_len
                         );
                         memset ( 
-                            &allele[i]->alignment[allele[i]->pos],
+                            &allele[i]->alignment[allele[i]->alg],
                             '=',
                             min
                         );
                         memset ( 
-                            &allele[i]->alignment[allele[i]->pos + min],
+                            &allele[i]->alignment[allele[i]->alg],
                             c,
                             abs ( offset )
                         );
-                        // Update of the offset and the position of the allele
-                        allele[i]->off += offset;
-                        allele[i]->pos += alt_len;
-                        // Reference position update
-                        ref_pos[i] += ( distance + ref_len );
                     }
                 } else {
                     udv_collision++;
@@ -228,21 +210,18 @@ int main ( int argc, char ** argv ) {
         }
         // Copy of the remaining part of the sequence
         for ( int i = 0; i < ploidy; i++ ) {
-            distance = seq->sequence_size - ref_pos[i];
+            distance = seq->sequence_size - allele[i]->ref;
             memcpy (
                 &allele[i]->sequence[allele[i]->pos],
-                &seq->sequence[ref_pos[i]],
-                distance
-            );
-            memset ( 
-                &allele[i]->alignment[allele[i]->pos],
-                '=',
+                &seq->sequence[allele[i]->ref],
                 distance
             );
             // Update position
             allele[i]->pos += distance;
+            allele[i]->alg += distance;
             // End of the sequence
-            allele[i]->pos = 0;
+            allele[i]->sequence[allele[i]->pos] = '\0';
+            allele[i]->alignment[allele[i]->alg] = '\0';
         }
         // Write of the sequence on file
         for ( int i = 0; i < ploidy; i++ ) {
@@ -266,7 +245,6 @@ int main ( int argc, char ** argv ) {
         fclose ( output[i] );
         fclose ( alignment[i] );
     }
-    free ( ref_pos );
     free ( allele );
     free ( output );
     free ( alignment );
