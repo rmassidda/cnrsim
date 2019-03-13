@@ -24,7 +24,7 @@ allele_t * allele_init ( long int size, allele_t * allele ) {
         allele->sequence = realloc ( allele->sequence, ( sizeof ( char ) ) * allele->buffer_size );
         allele->alignment = realloc ( allele->alignment, ( sizeof ( char ) ) * allele->buffer_size );
         // Initial conditions
-        memset ( allele->sequence, 0, sizeof ( char ) *allele->buffer_size );
+        memset ( allele->sequence, '\0', sizeof ( char ) *allele->buffer_size );
         memset ( allele->alignment, '=', sizeof ( char ) *allele->buffer_size );
         allele->pos = 0;
         allele->off = 0;
