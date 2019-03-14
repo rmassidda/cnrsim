@@ -39,18 +39,23 @@ int main ( int argc, char ** argv ) {
     wrapper_t * w;
     // Alleles
     allele_t ** allele;
-    long int distance;
     // Output
     FILE ** output;
     FILE ** alignment;
     char * str;
     // Statistics
+    bool stats = false;
     unsigned long int done = 0;
-    unsigned long int ignored = 0;
+    unsigned long int igno_ref = 0;
+    unsigned long int igno_all = 0;
+    unsigned long int igno_alg = 0;
     unsigned long int udv_collision = 0;
 
-    while ((opt = getopt(argc, argv, "n:u:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "sn:u:o:")) != -1) {
         switch (opt) {
+            case 's':
+                stats = true;
+                break;
             case 'n':
                 ploidy = atoi ( optarg );
                 break;
@@ -126,7 +131,8 @@ int main ( int argc, char ** argv ) {
             allele[i] = allele_init ( seq->sequence_size, allele[i] );
         }
         // Label separated by white space
-        fprintf ( stdout, "%s\n", seq->label );
+        if ( stats )
+            printf ( "%s\n", seq->label );
         // Seek to the desired region
         if ( wr_seek ( w, seq->label ) ) {
             // Up to the end of the region
@@ -135,50 +141,57 @@ int main ( int argc, char ** argv ) {
                     // Per allele
                     for ( int i = 0; i < ploidy; i++ ) {
                         // Distance between the reference and the variation pointers
-                        distance = w->pos - allele[i]->ref;
-                        if ( distance > 0 ) {
+                        if ( w->pos > allele[i]->max_ref ) {
                             /*
                              * The variation starts far from the current
                              * reference position, what is in between can
                              * be copied without any mutation.
                              */
+                            allele_seek ( allele[i]->max_ref, allele[i] );
                             memcpy (
                                 &allele[i]->sequence[allele[i]->pos],
                                 &seq->sequence[allele[i]->ref],
-                                distance
+                                w->pos - allele[i]->max_ref
                             );
                         }
 
                         // Updates the allele position
                         allele_seek ( w->pos, allele[i] );
 
-                        /*
-                         * If we want to applicate a certain variation,
-                         * reference in the allele and VCF reference
-                         * have to coincide.
-                         */
-
                         // Alternative
-                        allele_variation ( w->ref, w->alt[w->alt_index[i]], allele[i]);
-                        // Application of the variation
-                        done ++;
+                        int check = allele_variation ( 
+                                    w->ref,
+                                    w->alt[w->alt_index[i]],
+                                    allele[i]);
+                        if ( stats ){
+                            if ( check == 0 ){
+                                done ++;
+                            }
+                            else if ( check == -1 ){
+                                igno_ref ++;
+                            }
+                            else if ( check == -2 ){
+                                igno_all ++;
+                            }
+                            else{
+                                igno_alg ++;
+                            }
+                        }
                     }
-                } else {
+                } else if ( stats) {
                     udv_collision++;
                 }
             }
         }
         // Copy of the remaining part of the sequence
         for ( int i = 0; i < ploidy; i++ ) {
-            distance = seq->sequence_size - allele[i]->ref;
-            memcpy (
-                &allele[i]->sequence[allele[i]->pos],
-                &seq->sequence[allele[i]->ref],
-                distance
-            );
-            // Update position
-            allele[i]->pos += distance;
-            allele[i]->alg += distance;
+            allele_seek ( allele[i]->max_ref, allele[i] );
+            allele_variation (
+                    &seq->sequence[allele[i]->max_ref],
+                    &seq->sequence[allele[i]->max_ref],
+                    allele[i]
+                    );
+            allele_seek ( allele[i]->max_ref, allele[i] );
             // End of the sequence
             allele[i]->sequence[allele[i]->pos] = '\0';
             allele[i]->alignment[allele[i]->alg] = '\0';
@@ -193,10 +206,14 @@ int main ( int argc, char ** argv ) {
         // Next sequence
         seq = filemanager_next_seq ( fm, seq );
     }
-    unsigned long int sum = done + ignored + udv_collision;
-    printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
-    printf ( "IGNO:\t%lu\t%.2f\n", ignored, ignored * 100.0 / sum );
-    printf ( "UDVC:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
+    if ( stats ){
+        unsigned long int sum = done + igno_ref + igno_all + igno_alg + udv_collision;
+        printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
+        printf ( "REF:\t%lu\t%.2f\n", igno_ref, igno_ref * 100.0 / sum );
+        printf ( "ALL:\t%lu\t%.2f\n", igno_all, igno_all * 100.0 / sum );
+        printf ( "ALG:\t%lu\t%.2f\n", igno_alg, igno_alg * 100.0 / sum );
+        printf ( "UDVC:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
+    }
 
     // Cleanup
     for ( int i = 0; i < ploidy; i++ ) {
