@@ -17,6 +17,7 @@ struct allele_t {
     long int buffer_size; // size of the sequence
     long int pos; // current position
     long int ref; // corresponding reference position
+    long int max_ref; // limit of the area covered by variations
     long int alg; // corresponding alignment position
     long int off; // offset from reference position
 };
