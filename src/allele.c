@@ -143,18 +143,6 @@ int allele_variation ( char * ref, char * alt, allele_t * allele ){
     return 0;
 }
 
-void allele_dump ( allele_t * allele ){
-    int i = 0;
-    for ( i = 0; i < allele->ref; i ++ ) printf ( " " );
-    printf ( "R\n" );
-    for ( i = 0; i < allele->pos; i ++ ) printf ( " " );
-    printf ( "P\n" );
-    for ( i = 0; i < allele->alg; i ++ ) printf ( " " );
-    printf ( "A\n" );
-    printf ( "%s\n", allele->sequence );
-    printf ( "%.*s\n", (int)allele->alg + 1, allele->alignment );
-}
-
 void allele_destroy ( allele_t * allele ){
     free ( allele->sequence );
     free ( allele->alignment );

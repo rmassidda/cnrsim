@@ -54,6 +54,17 @@ allele_t * allele_point ( long int size, char * sequence, char * alignment, alle
  */
 int allele_seek ( int position, allele_t * allele );
 
+/*
+ * Applies a variation at the current allele position.
+ * 
+ * @param ref    reference string
+ * @param alt    alternative to be applied
+ * @param allele pointer to the structure
+ * @return       0  if the variation was correctly applied
+ *               -1 if the reference don't with what's already in the allele
+ *               -2 if the variation requires to move the allele content
+ *               -3 if the variation requires to move the alignment string
+ */
 int allele_variation ( char * ref, char * alt, allele_t * allele );
 
 /*
@@ -62,6 +73,5 @@ int allele_variation ( char * ref, char * alt, allele_t * allele );
  * @param       allele  allele to be deallocated
  */
 void allele_destroy ( allele_t * allele );
-void allele_dump ( allele_t * allele );
 
 #endif
