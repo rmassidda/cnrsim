@@ -63,15 +63,15 @@ int allele_seek ( int position, allele_t * allele ){
             // Next position in the alignment
             allele->alg += direction;
             // Offset update
-            if ( allele->alignment[allele->alg] == 'i' ){
+            if ( allele->alignment[allele->alg] == 'I' ){
                 allele->off -= direction;
             }
-            else if ( allele->alignment[allele->alg] == 'd' ){
+            else if ( allele->alignment[allele->alg] == 'D' ){
                 allele->off += direction;
             }
-        // If there is a 'd' or a '=' it corresponds
+        // If there is a 'D' or a '=' it corresponds
         // to a new position on the reference
-        }while ( allele->alignment[allele->alg] == 'i' );
+        }while ( allele->alignment[allele->alg] == 'I' );
         allele->ref += direction;
     }
     // Update of the position
@@ -87,7 +87,7 @@ int allele_variation ( char * ref, char * alt, allele_t * allele ){
     int offset = ref_len - alt_len;
     int min = ( offset < 0 ) ? ref_len : alt_len;
     int max = ( offset < 0 ) ? alt_len : ref_len;
-    char c = ( offset < 0 ) ? 'i' : 'd';
+    char c = ( offset < 0 ) ? 'I' : 'D';
 
     // Variation coerency check
     if ( all_len <= ref_len ){
@@ -107,7 +107,7 @@ int allele_variation ( char * ref, char * alt, allele_t * allele ){
 
     // Check if the position stil exists
     for ( int i = 0; i < max; i ++ ){
-        if ( allele->alignment[allele->alg + i] == 'd' ){
+        if ( allele->alignment[allele->alg + i] == 'D' ){
             return -3;
         }
     }
