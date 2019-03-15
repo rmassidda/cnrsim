@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <htslib/sam.h>
+#include <edlib.h>
 #include <math.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -20,26 +21,26 @@
 #include "translate_notation.h"
 
 void usage ( char * name){
-    fprintf(stderr, "Usage: %s [-d dictionary] [-a] bam_file fasta_file [allele_file ...]\n", name );
+    fprintf(stderr, "Usage: %s [-d dictionary] [-a] [-v] [-e] bam_file fasta_file [allele_file ...]\n", name );
 }
 
-void dump_read ( char * ref, int ref_len, aligner_t * aligner, char * read ){
+void dump_read ( char * ref, int ref_len, int start, char * alignment, int alg_len, char * read ){
+    int z;
+    char c;
     // Reference
     printf ( "%.*s\n", ref_len, ref );
-    // Read
-    int z;
     // Aligned Read
-    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
+    for ( z = 0; z < start; z ++ ) printf ( " " );
     int j = 0;
-    for ( z = 0; z < strlen (aligner->alignment); z++ ){
-        if ( aligner->alignment[z] == '!' ){
+    for ( z = 0; z < alg_len; z++ ){
+        if ( alignment[z] == '!' || alignment[z] == 3 ){
             printf ( "|" );
             j++;
         }
-        else if ( aligner->alignment[z] == 'L' ){
+        else if ( alignment[z] == 'L' || alignment[z] == 2 ){
             printf ( "|" );
         } 
-        else if ( aligner->alignment[z] == 'T' ){
+        else if ( alignment[z] == 'T' || alignment [z] == 1){
             j++;
         }
         else{
@@ -48,11 +49,20 @@ void dump_read ( char * ref, int ref_len, aligner_t * aligner, char * read ){
         }
     }
     printf ("\n");
-    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
+    for ( z = 0; z < start; z ++ ) printf ( " " );
     printf("%s\n", read );
     // Alignment
-    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
-    printf ( "%s\n", aligner->alignment );
+    for ( z = 0; z < start; z ++ ) printf ( " " );
+    for ( z = 0; z < alg_len; z ++ ){
+        switch ( alignment[z] ){
+            case 0: c = '='; break;
+            case 1: c = 'T'; break;
+            case 2: c = 'L'; break;
+            case 3: c = '!'; break;
+            default: c = alignment[z];
+        }
+        printf ( "%c", c );
+    }
     printf ( "\n\n" );
 }
 
@@ -64,6 +74,7 @@ int main ( int argc, char ** argv ) {
     char * bam_fn;
     char * fasta_fn = NULL;
     bool verbose = false;
+    bool edlib = false;
     int ploidy;
     // FASTA
     struct filemanager ** fm;
@@ -78,10 +89,13 @@ int main ( int argc, char ** argv ) {
     hts_idx_t *index;
     hts_itr_t *itr;
     // Alias dictionary
-    region_index_t * alias_index;
+    region_index_t * alias_index = NULL;
     char * alias = NULL;
     // Aligner
+    EdlibAlignResult edlib_alg;
+    EdlibAlignConfig config;
     aligner_t * aligner = NULL;
+    char * alignment;
     char * read = NULL;
     int pos;
     int len;
@@ -89,14 +103,19 @@ int main ( int argc, char ** argv ) {
     int flank_2;
     int start;
     int end;
+    int alg_len;
 
-    while ((opt = getopt(argc, argv, "vd:a")) != -1) {
+    while ((opt = getopt(argc, argv, "vd:ea")) != -1) {
         switch (opt) {
             case 'v':
                 verbose = true;
                 break;
             case 'd':
                 dictionary = optarg;
+                break;
+            case 'e':
+                edlib = true;
+                config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0 );
                 break;
             case 'a':
                 alternative = true;
@@ -246,13 +265,28 @@ int main ( int argc, char ** argv ) {
                     }
 
                     // Align
-                    aligner = al_init ( aligner, &curr_seq->sequence[start], end - start, read );
-                    build_alignment ( aligner );
+                    if ( edlib ){
+                        edlib_alg = edlibAlign (
+                                read,
+                                len,
+                                &curr_seq->sequence[start],
+                                end - start,
+                                config );
+                        alignment = ( char * ) edlib_alg.alignment;
+                        alg_len = edlib_alg.alignmentLength;
+                    }
+                    else {
+                        aligner = al_init ( aligner, &curr_seq->sequence[start], end - start, read );
+                        alignment = build_alignment ( aligner );
+                        alg_len = strlen ( alignment );
+                    }
                     if ( verbose ){
                         dump_read (
                             &curr_seq->sequence[start],
                             end - start,
-                            aligner,
+                            start,
+                            alignment,
+                            alg_len,
                             read );
                     }
                 }
