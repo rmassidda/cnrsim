@@ -130,11 +130,14 @@ int allele_variation ( char * ref, char * alt, allele_t * allele ){
                 ref_len - alt_len
                );
     }
-    memset ( 
-            &allele->alignment[allele->alg],
-            '=',
-            min
-           );
+    for ( int i = 0; i < min; i ++ ){
+        if ( alt[i] == ref[i] ){
+            allele->alignment[allele->alg + i] = '=';
+        }
+        else { 
+            allele->alignment[allele->alg + i] = '!';
+        }
+    }
     memset ( 
             &allele->alignment[allele->alg + min],
             c,
