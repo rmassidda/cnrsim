@@ -23,30 +23,23 @@ void usage ( char * name){
     fprintf(stderr, "Usage: %s [-d dictionary] [-a] bam_file fasta_file [allele_file ...]\n", name );
 }
 
-void dump_read ( int i, char * alias, int pos, int start, struct sequence_t * curr_seq, char * alignment, aligner_t * aligner, char * read, int gap_1, int gap_2, int len ){
-    // Useless print
-    printf ( "%d)%s\t%d\t%d\n", i, alias, pos, start + aligner->start );
+void dump_read ( char * ref, int ref_len, aligner_t * aligner, char * read ){
     // Reference
-    printf ( "%.*s\n", ( len + gap_1 + gap_2 ), &curr_seq->sequence[start]);
+    printf ( "%.*s\n", ref_len, ref );
     // Read
     int z;
-    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
-    printf("%s\n", read );
-    // Alignment
-    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
-    printf ( "%s\n", alignment );
     // Aligned Read
     for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
     int j = 0;
-    for ( z = 0; z < strlen (alignment); z++ ){
-        if ( alignment[i] == '!' ){
+    for ( z = 0; z < strlen (aligner->alignment); z++ ){
+        if ( aligner->alignment[z] == '!' ){
             printf ( "|" );
             j++;
         }
-        else if ( alignment[i] == 'L' ){
+        else if ( aligner->alignment[z] == 'L' ){
             printf ( "|" );
         } 
-        else if ( alignment[i] == 'T' ){
+        else if ( aligner->alignment[z] == 'T' ){
             j++;
         }
         else{
@@ -54,6 +47,12 @@ void dump_read ( int i, char * alias, int pos, int start, struct sequence_t * cu
             j++;
         }
     }
+    printf ("\n");
+    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
+    printf("%s\n", read );
+    // Alignment
+    for ( z = 0; z < aligner->start; z ++ ) printf ( " " );
+    printf ( "%s\n", aligner->alignment );
     printf ( "\n\n" );
 }
 
@@ -83,11 +82,10 @@ int main ( int argc, char ** argv ) {
     // Aligner
     aligner_t * aligner = NULL;
     char * read = NULL;
-    char * alignment = NULL;
     int pos = 0;
     int len = 0;
-    int gap_1 = 0;
-    int gap_2 = 0;
+    int flank_1 = 0;
+    int flank_2 = 0;
     int start = 0;
 
     while ((opt = getopt(argc, argv, "d:a")) != -1) {
@@ -209,8 +207,8 @@ int main ( int argc, char ** argv ) {
                 uint8_t *q = bam_get_seq( line ); //quality string        
 
                 // Interval of the reference
-                gap_1 = floor ( len / 4 );
-                gap_2 = gap_1;
+                flank_1 = floor ( log ( 2 * len ) / log ( 2 ) );
+                flank_2 = flank_1;
 
                 // Read string
                 read = realloc ( read, sizeof ( char ) * ( len + 1 ) );
@@ -224,13 +222,15 @@ int main ( int argc, char ** argv ) {
                     curr_seq = seq[i];
                     // Seek on the allele
                     allele_seek ( pos, allele[i] );
-                    start = allele[i]->pos - gap_1;
-                    printf ( "%d\t%ld\n", pos, allele[i]->pos );
-
+                    start = allele[i]->pos - flank_1;
                     // Align
-                    aligner = al_init ( aligner, &curr_seq->sequence[start], len + gap_2 + gap_1, read );
-                    alignment = build_alignment ( aligner );
-                    dump_read ( i, alias, pos, start, curr_seq, alignment, aligner, read, gap_1, gap_2, len );
+                    aligner = al_init ( aligner, &curr_seq->sequence[start], len + flank_2 + flank_1, read );
+                    build_alignment ( aligner );
+                    dump_read (
+                            &curr_seq->sequence[start],
+                            len + flank_1 + flank_2,
+                            aligner,
+                            read );
                 }
             }
         }		
