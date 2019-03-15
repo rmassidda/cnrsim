@@ -4,10 +4,10 @@ VAROBJ = fileManager.c parse_frequency.c user_variation.c variator.c wrapper.c a
 ERROBJ = align.c error_profiler.c fileManager.c translate_notation.c allele.c
 
 variator: $(addprefix src/, ${VAROBJ})
-	cc ${CFLAGS} -Wall -g -lhts -lm -o $@ $^
+	cc ${CFLAGS} -o $@ $^
 
 error: $(addprefix src/, ${ERROBJ})
-	cc ${CFLAGS} -Wall -g -lhts -lm -o $@ $^
+	cc ${CFLAGS} -o $@ $^
 
 .PHONY: clean
 clean:
