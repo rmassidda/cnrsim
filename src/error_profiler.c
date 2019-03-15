@@ -82,11 +82,12 @@ int main ( int argc, char ** argv ) {
     // Aligner
     aligner_t * aligner = NULL;
     char * read = NULL;
-    int pos = 0;
-    int len = 0;
-    int flank_1 = 0;
-    int flank_2 = 0;
-    int start = 0;
+    int pos;
+    int len;
+    int flank_1;
+    int flank_2;
+    int start;
+    int end;
 
     while ((opt = getopt(argc, argv, "d:a")) != -1) {
         switch (opt) {
@@ -222,13 +223,30 @@ int main ( int argc, char ** argv ) {
                     curr_seq = seq[i];
                     // Seek on the allele
                     allele_seek ( pos, allele[i] );
-                    start = allele[i]->pos - flank_1;
+                    
+                    // Flanking regions
+                    start = allele[i]->pos;
+                    if ( start - flank_1 < 0 ){
+                        start = 0;
+                    }
+                    else {
+                        start -= flank_1;
+                    }
+
+                    end = allele[i]->pos + len;
+                    if ( end + flank_2 >= curr_seq->sequence_size ){
+                        end = curr_seq->sequence_size - 1;
+                    }
+                    else{
+                        end += flank_2;
+                    }
+
                     // Align
-                    aligner = al_init ( aligner, &curr_seq->sequence[start], len + flank_2 + flank_1, read );
+                    aligner = al_init ( aligner, &curr_seq->sequence[start], end - start, read );
                     build_alignment ( aligner );
                     dump_read (
                             &curr_seq->sequence[start],
-                            len + flank_1 + flank_2,
+                            end - start,
                             aligner,
                             read );
                 }
