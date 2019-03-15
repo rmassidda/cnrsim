@@ -289,6 +289,9 @@ int main ( int argc, char ** argv ) {
                             alg_len,
                             read );
                     }
+                    if ( edlib ){
+                        edlibFreeAlignResult ( edlib_alg );
+                    }
                 }
             }
         }		
