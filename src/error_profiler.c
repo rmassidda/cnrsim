@@ -63,6 +63,7 @@ int main ( int argc, char ** argv ) {
     bool alternative = false;
     char * bam_fn;
     char * fasta_fn = NULL;
+    bool verbose = false;
     int ploidy;
     // FASTA
     struct filemanager ** fm;
@@ -89,8 +90,11 @@ int main ( int argc, char ** argv ) {
     int start;
     int end;
 
-    while ((opt = getopt(argc, argv, "d:a")) != -1) {
+    while ((opt = getopt(argc, argv, "vd:a")) != -1) {
         switch (opt) {
+            case 'v':
+                verbose = true;
+                break;
             case 'd':
                 dictionary = optarg;
                 break;
@@ -244,11 +248,13 @@ int main ( int argc, char ** argv ) {
                     // Align
                     aligner = al_init ( aligner, &curr_seq->sequence[start], end - start, read );
                     build_alignment ( aligner );
-                    dump_read (
+                    if ( verbose ){
+                        dump_read (
                             &curr_seq->sequence[start],
                             end - start,
                             aligner,
                             read );
+                    }
                 }
             }
         }		
