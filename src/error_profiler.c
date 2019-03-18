@@ -101,6 +101,9 @@ int main ( int argc, char ** argv ) {
     int start;
     int end;
     int alg_len;
+    // Statistics
+    int min_score;
+    int min_index;
 
     while ((opt = getopt(argc, argv, "vd:a")) != -1) {
         switch (opt) {
@@ -270,8 +273,15 @@ int main ( int argc, char ** argv ) {
                             config );
                     alignment[i] =  edlib_alg.alignment;
                     alg_len = edlib_alg.alignmentLength;
+                    
+                    // Select best alignment
+                    if ( i == 0 || edlib_alg.editDistance < min_score ){
+                        min_index = i;
+                        min_score = edlib_alg.editDistance;
+                    }
 
                     if ( verbose ){
+                        printf ( "%d\n", edlib_alg.editDistance );
                         dump_read (
                             &curr_seq->sequence[start],
                             end - start,
