@@ -17,6 +17,7 @@
 #include <assert.h>
 #include "allele.h"
 #include "fileManager.h"
+#include "stats.h"
 #include "translate_notation.h"
 
 void usage ( char * name){
@@ -100,6 +101,7 @@ int main ( int argc, char ** argv ) {
     int start;
     int end;
     // Statistics
+    stats_t * stats;
     int min_score;
     int min_index;
 
@@ -210,6 +212,7 @@ int main ( int argc, char ** argv ) {
 
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0 );
+    stats = stats_init ();
 
     // While there are sequences to read in the FASTA file
     while ( curr_seq != NULL ) {
@@ -289,6 +292,15 @@ int main ( int argc, char ** argv ) {
 
                 }
 
+                stats_update (
+                        stats,
+                        edlib_alg[min_index].alignment,
+                        edlib_alg[min_index].alignmentLength,
+                        read,
+                        len,
+                        &seq[min_index]->sequence[edlib_alg[min_index].startLocations[0]]
+                        );
+
                 for ( int i = 0; i < ploidy; i ++ ){
                     edlibFreeAlignResult ( edlib_alg[i] );
                 }
@@ -318,6 +330,9 @@ int main ( int argc, char ** argv ) {
         curr_seq = seq[0];
     }
 
+    // Dump statistics
+    stats_dump ( stdout, stats );
+
     // Cleanup
     for ( int i = 0; i < ploidy; i ++ ){
         filemanager_destroy ( fm[i] );
@@ -335,6 +350,7 @@ int main ( int argc, char ** argv ) {
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
     hts_idx_destroy ( index );
+    stats_destroy ( stats );
     sam_close( fp );
     free ( read );
     tr_destroy ( alias_index );
