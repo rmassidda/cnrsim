@@ -92,7 +92,7 @@ int main ( int argc, char ** argv ) {
     // Aligner
     EdlibAlignResult edlib_alg;
     EdlibAlignConfig config;
-    unsigned char * alignment;
+    unsigned char ** alignment;
     char * read = NULL;
     int pos;
     int len;
@@ -162,6 +162,7 @@ int main ( int argc, char ** argv ) {
     fm = malloc ( sizeof ( struct filemanager_t * ) * 2 * ploidy );
     seq = malloc ( sizeof ( struct sequence_t * ) * 2 * ploidy);
     allele = malloc ( sizeof ( struct allele_t * ) * ploidy);
+    alignment = malloc ( sizeof ( unsigned char * ) * ploidy );
 
     // First read of all the sequences
     for ( int i = 0; i < ploidy; i ++ ){
@@ -267,17 +268,19 @@ int main ( int argc, char ** argv ) {
                             &curr_seq->sequence[start],
                             end - start,
                             config );
-                    alignment =  edlib_alg.alignment;
+                    alignment[i] =  edlib_alg.alignment;
                     alg_len = edlib_alg.alignmentLength;
+
                     if ( verbose ){
                         dump_read (
                             &curr_seq->sequence[start],
                             end - start,
                             edlib_alg.startLocations[0],
-                            alignment,
+                            alignment[i],
                             alg_len,
                             read );
                     }
+
                     edlibFreeAlignResult ( edlib_alg );
                 }
             }
@@ -318,6 +321,7 @@ int main ( int argc, char ** argv ) {
     free ( fm );
     free ( seq );
     free ( allele );
+    free ( alignment );
     bam_destroy1( line );
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
