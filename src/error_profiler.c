@@ -15,7 +15,6 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <assert.h>
-#include "align.h"
 #include "allele.h"
 #include "fileManager.h"
 #include "translate_notation.h"
@@ -24,7 +23,7 @@ void usage ( char * name){
     fprintf(stderr, "Usage: %s [-d dictionary] [-a] [-v] [-e] bam_file fasta_file [allele_file ...]\n", name );
 }
 
-void dump_read ( char * ref, int ref_len, int start, char * alignment, int alg_len, char * read ){
+void dump_read ( char * ref, int ref_len, int start, unsigned char * alignment, int alg_len, char * read ){
     int z;
     char c;
     // Reference
@@ -74,7 +73,6 @@ int main ( int argc, char ** argv ) {
     char * bam_fn;
     char * fasta_fn = NULL;
     bool verbose = false;
-    bool edlib = false;
     int ploidy;
     // FASTA
     struct filemanager ** fm;
@@ -94,8 +92,7 @@ int main ( int argc, char ** argv ) {
     // Aligner
     EdlibAlignResult edlib_alg;
     EdlibAlignConfig config;
-    aligner_t * aligner = NULL;
-    char * alignment;
+    unsigned char * alignment;
     char * read = NULL;
     int pos;
     int len;
@@ -105,17 +102,13 @@ int main ( int argc, char ** argv ) {
     int end;
     int alg_len;
 
-    while ((opt = getopt(argc, argv, "vd:ea")) != -1) {
+    while ((opt = getopt(argc, argv, "vd:a")) != -1) {
         switch (opt) {
             case 'v':
                 verbose = true;
                 break;
             case 'd':
                 dictionary = optarg;
-                break;
-            case 'e':
-                edlib = true;
-                config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0 );
                 break;
             case 'a':
                 alternative = true;
@@ -213,6 +206,9 @@ int main ( int argc, char ** argv ) {
 
     free ( fasta_fn );
 
+    // Edlib configuration
+    config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0 );
+
     // While there are sequences to read in the FASTA file
     while ( curr_seq != NULL ) {
         // Seek on the BAM
@@ -265,35 +261,24 @@ int main ( int argc, char ** argv ) {
                     }
 
                     // Align
-                    if ( edlib ){
-                        edlib_alg = edlibAlign (
-                                read,
-                                len,
-                                &curr_seq->sequence[start],
-                                end - start,
-                                config );
-                        alignment = ( char * ) edlib_alg.alignment;
-                        alg_len = edlib_alg.alignmentLength;
-                        flank_1 = edlib_alg.startLocations[0];
-                    }
-                    else {
-                        aligner = al_init ( aligner, &curr_seq->sequence[start], end - start, read );
-                        alignment = build_alignment ( aligner );
-                        alg_len = strlen ( alignment );
-                        flank_1 = aligner->start;
-                    }
+                    edlib_alg = edlibAlign (
+                            read,
+                            len,
+                            &curr_seq->sequence[start],
+                            end - start,
+                            config );
+                    alignment =  edlib_alg.alignment;
+                    alg_len = edlib_alg.alignmentLength;
                     if ( verbose ){
                         dump_read (
                             &curr_seq->sequence[start],
                             end - start,
-                            flank_1,
+                            edlib_alg.startLocations[0],
                             alignment,
                             alg_len,
                             read );
                     }
-                    if ( edlib ){
-                        edlibFreeAlignResult ( edlib_alg );
-                    }
+                    edlibFreeAlignResult ( edlib_alg );
                 }
             }
         }		
