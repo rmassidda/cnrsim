@@ -274,17 +274,19 @@ int main ( int argc, char ** argv ) {
                                 config );
                         alignment = ( char * ) edlib_alg.alignment;
                         alg_len = edlib_alg.alignmentLength;
+                        flank_1 = edlib_alg.startLocations[0];
                     }
                     else {
                         aligner = al_init ( aligner, &curr_seq->sequence[start], end - start, read );
                         alignment = build_alignment ( aligner );
                         alg_len = strlen ( alignment );
+                        flank_1 = aligner->start;
                     }
                     if ( verbose ){
                         dump_read (
                             &curr_seq->sequence[start],
                             end - start,
-                            start,
+                            flank_1,
                             alignment,
                             alg_len,
                             read );
