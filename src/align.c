@@ -39,11 +39,11 @@ aligner_t * al_init ( aligner_t * aligner, char * reference, int reference_lengt
         // Initial conditions
         for ( int j = 0; j < al->ref_len; j ++ ) {
             nw[i][j] = 0;
-            op[i][j] = '!';
+            op[i][j] = 'X';
         }
         // GAP in the first column
         nw[i][0] = i * GAP;
-        op[i][0] = 'T';
+        op[i][0] = 'D';
     }
     
     // Alignement result
@@ -76,15 +76,15 @@ void __align( aligner_t * al ) {
             }
             else {
                 nw[i][j] = nw[i - 1][j - 1] + MISMATCH;
-                op[i][j] = '!';
+                op[i][j] = 'X';
             }
             if ( top > nw[i][j] ){
                 nw[i][j] = top;
-                op[i][j] = 'T';
+                op[i][j] = 'D';
             }
             if ( left > nw[i][j] ){
                 nw[i][j] = left;
-                op[i][j] = 'L';
+                op[i][j] = 'I';
             }
         }
     }
@@ -113,10 +113,10 @@ char * build_alignment ( aligner_t * al ) {
     k = 0;
     while ( j != 0 && i != 0 ) {
         s[k] = op[i][j];
-        if ( s[k] == 'L' ){
+        if ( s[k] == 'I' ){
             j --;
         }
-        else if ( s[k] == 'T' ){
+        else if ( s[k] == 'D' ){
             i --;
         }
         else{
@@ -126,7 +126,7 @@ char * build_alignment ( aligner_t * al ) {
         k ++;
     }
     while ( i > 0 ) {
-        s[k] = 'T';
+        s[k] = 'D';
         i --;
         k ++;
     }
@@ -152,13 +152,13 @@ char * alignment ( aligner_t * al ) {
         seq[k] = ' ';
     }
     for ( k = 0; k < strlen ( al->alignment ); k ++ ) {
-        if ( al->alignment[k] == '!' || al->alignment[k] == '=' ) {
+        if ( al->alignment[k] == 'X' || al->alignment[k] == '=' ) {
             seq[k + al->start] = al->reference[j + al->start];
             i ++;
             j ++;
         }
         // Read presents an insertion
-        else if ( al->alignment[k] == 'T' ) {
+        else if ( al->alignment[k] == 'D' ) {
             seq[k + al->start] = al->read[i];
             i ++;
         }

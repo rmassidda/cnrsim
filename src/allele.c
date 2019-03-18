@@ -135,7 +135,7 @@ int allele_variation ( char * ref, char * alt, allele_t * allele ){
             allele->alignment[allele->alg + i] = '=';
         }
         else { 
-            allele->alignment[allele->alg + i] = '!';
+            allele->alignment[allele->alg + i] = 'X';
         }
     }
     memset ( 

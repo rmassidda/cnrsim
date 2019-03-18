@@ -33,14 +33,14 @@ void dump_read ( char * ref, int ref_len, int start, char * alignment, int alg_l
     for ( z = 0; z < start; z ++ ) printf ( " " );
     int j = 0;
     for ( z = 0; z < alg_len; z++ ){
-        if ( alignment[z] == '!' || alignment[z] == 3 ){
+        if ( alignment[z] == 'X' || alignment[z] == 3 ){
             printf ( "|" );
             j++;
         }
-        else if ( alignment[z] == 'L' || alignment[z] == 2 ){
+        else if ( alignment[z] == 'I' || alignment[z] == 2 ){
             printf ( "|" );
         } 
-        else if ( alignment[z] == 'T' || alignment [z] == 1){
+        else if ( alignment[z] == 'D' || alignment [z] == 1){
             j++;
         }
         else{
@@ -56,9 +56,9 @@ void dump_read ( char * ref, int ref_len, int start, char * alignment, int alg_l
     for ( z = 0; z < alg_len; z ++ ){
         switch ( alignment[z] ){
             case 0: c = '='; break;
-            case 1: c = 'T'; break;
-            case 2: c = 'L'; break;
-            case 3: c = '!'; break;
+            case 1: c = 'D'; break;
+            case 2: c = 'I'; break;
+            case 3: c = 'X'; break;
             default: c = alignment[z];
         }
         printf ( "%c", c );
