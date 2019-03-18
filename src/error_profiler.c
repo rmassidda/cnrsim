@@ -90,9 +90,8 @@ int main ( int argc, char ** argv ) {
     region_index_t * alias_index = NULL;
     char * alias = NULL;
     // Aligner
-    EdlibAlignResult edlib_alg;
+    EdlibAlignResult  * edlib_alg;
     EdlibAlignConfig config;
-    unsigned char ** alignment;
     char * read = NULL;
     int pos;
     int len;
@@ -100,7 +99,6 @@ int main ( int argc, char ** argv ) {
     int flank_2;
     int start;
     int end;
-    int alg_len;
     // Statistics
     int min_score;
     int min_index;
@@ -165,7 +163,7 @@ int main ( int argc, char ** argv ) {
     fm = malloc ( sizeof ( struct filemanager_t * ) * 2 * ploidy );
     seq = malloc ( sizeof ( struct sequence_t * ) * 2 * ploidy);
     allele = malloc ( sizeof ( struct allele_t * ) * ploidy);
-    alignment = malloc ( sizeof ( unsigned char * ) * ploidy );
+    edlib_alg = malloc ( sizeof ( EdlibAlignResult ) * ploidy );
 
     // First read of all the sequences
     for ( int i = 0; i < ploidy; i ++ ){
@@ -265,33 +263,34 @@ int main ( int argc, char ** argv ) {
                     }
 
                     // Align
-                    edlib_alg = edlibAlign (
+                    edlib_alg[i] = edlibAlign (
                             read,
                             len,
                             &curr_seq->sequence[start],
                             end - start,
                             config );
-                    alignment[i] =  edlib_alg.alignment;
-                    alg_len = edlib_alg.alignmentLength;
                     
                     // Select best alignment
-                    if ( i == 0 || edlib_alg.editDistance < min_score ){
+                    if ( i == 0 || edlib_alg[i].editDistance < min_score ){
                         min_index = i;
-                        min_score = edlib_alg.editDistance;
+                        min_score = edlib_alg[i].editDistance;
                     }
 
                     if ( verbose ){
-                        printf ( "%d\n", edlib_alg.editDistance );
+                        printf ( "%d\n", edlib_alg[i].editDistance );
                         dump_read (
                             &curr_seq->sequence[start],
                             end - start,
-                            edlib_alg.startLocations[0],
-                            alignment[i],
-                            alg_len,
+                            edlib_alg[i].startLocations[0],
+                            edlib_alg[i].alignment,
+                            edlib_alg[i].alignmentLength,
                             read );
                     }
 
-                    edlibFreeAlignResult ( edlib_alg );
+                }
+
+                for ( int i = 0; i < ploidy; i ++ ){
+                    edlibFreeAlignResult ( edlib_alg[i] );
                 }
             }
         }		
@@ -331,7 +330,7 @@ int main ( int argc, char ** argv ) {
     free ( fm );
     free ( seq );
     free ( allele );
-    free ( alignment );
+    free ( edlib_alg );
     bam_destroy1( line );
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
