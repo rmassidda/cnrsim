@@ -9,7 +9,7 @@
 
 #ifndef STATS
 #define STATS
-
+#define N_STAT 5
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -17,15 +17,16 @@ enum cigar{
     M = 0,
     D = 1,
     I = 2,
-    X = 3
+    X = 3,
+    L = 4
 };
 
 typedef struct stats_t stats_t;
 
 struct stats_t {
     unsigned long tot; // number of read analyzed
-    unsigned long * read; // read length stats
-    int max_read; // maximum length of a read
+    unsigned long * count[5]; // read length stats
+    int size; // maximum length of a statistic array
 };
 
 /*
