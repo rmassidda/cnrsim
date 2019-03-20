@@ -78,6 +78,7 @@ int main ( int argc, char ** argv ) {
     char * bam_fn;
     char * fasta_fn = NULL;
     bool verbose = false;
+    bool silent = false;
     int ploidy;
     // FASTA
     struct filemanager ** fm;
@@ -110,8 +111,11 @@ int main ( int argc, char ** argv ) {
     int min_score;
     int min_index;
 
-    while ((opt = getopt(argc, argv, "vd:a")) != -1) {
+    while ((opt = getopt(argc, argv, "svd:a")) != -1) {
         switch (opt) {
+            case 's':
+                silent = true;
+                break;
             case 'v':
                 verbose = true;
                 break;
@@ -347,8 +351,10 @@ int main ( int argc, char ** argv ) {
     }
 
     // Dump statistics
-    stats_dump ( stdout, stats[0] );
-    stats_dump ( stdout, stats[1] );
+    if ( !silent ){
+        stats_dump ( stdout, stats[0] );
+        stats_dump ( stdout, stats[1] );
+    }
 
     // Cleanup
     for ( int i = 0; i < ploidy; i ++ ){
