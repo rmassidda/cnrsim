@@ -24,7 +24,7 @@ void usage ( char * name){
     fprintf(stderr, "Usage: %s [-d dictionary] [-a] [-v] [-e] bam_file fasta_file [allele_file ...]\n", name );
 }
 
-void dump_read ( char * ref, int ref_len, int start, unsigned char * alignment, int alg_len, char * read ){
+void dump_read ( char * ref, int ref_len, int start, unsigned char * alignment, int alg_len, char * read , uint8_t * quality ){
     int z;
     char c;
     // Reference
@@ -51,6 +51,10 @@ void dump_read ( char * ref, int ref_len, int start, unsigned char * alignment, 
     printf ("\n");
     for ( z = 0; z < start; z ++ ) printf ( " " );
     printf("%s\n", read );
+    for ( z = 0; z < start; z ++ ) printf ( " " );
+    for ( z = 0; z < strlen ( read ); z ++ ) printf ( "%c", quality[z] + 33 );
+    printf ("\n");
+    
     // Alignment
     for ( z = 0; z < start; z ++ ) printf ( " " );
     for ( z = 0; z < alg_len; z ++ ){
@@ -299,7 +303,8 @@ int main ( int argc, char ** argv ) {
                             edlib_alg[i].startLocations[0],
                             edlib_alg[i].alignment,
                             edlib_alg[i].alignmentLength,
-                            read );
+                            read,
+                            qual);
                     }
                 }
 
