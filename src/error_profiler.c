@@ -101,7 +101,8 @@ int main ( int argc, char ** argv ) {
     int start;
     int end;
     // Statistics
-    stats_t * stats;
+    stats_t * stats[2];
+    int pair;
     int min_score;
     int min_index;
 
@@ -212,7 +213,8 @@ int main ( int argc, char ** argv ) {
 
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0 );
-    stats = stats_init ();
+    stats[0] = stats_init ();
+    stats[1] = stats_init ();
 
     // While there are sequences to read in the FASTA file
     while ( curr_seq != NULL ) {
@@ -242,6 +244,14 @@ int main ( int argc, char ** argv ) {
                     read[i] = seq_nt16_str[ bam_seqi ( q, i ) ];
                 }
                 read[i] = 0;
+
+                // Paired end
+                if ( line->core.flag & BAM_FREAD2 ){
+                    pair = 1;
+                }
+                else{
+                    pair = 0;
+                }
 
                 for ( i = 0; i < ploidy; i ++ ){
                     curr_seq = seq[i];
@@ -289,11 +299,10 @@ int main ( int argc, char ** argv ) {
                             edlib_alg[i].alignmentLength,
                             read );
                     }
-
                 }
 
                 stats_update (
-                        stats,
+                        stats[pair],
                         edlib_alg[min_index].alignment,
                         edlib_alg[min_index].alignmentLength,
                         read,
@@ -331,7 +340,8 @@ int main ( int argc, char ** argv ) {
     }
 
     // Dump statistics
-    stats_dump ( stdout, stats );
+    stats_dump ( stdout, stats[0] );
+    stats_dump ( stdout, stats[1] );
 
     // Cleanup
     for ( int i = 0; i < ploidy; i ++ ){
@@ -350,7 +360,8 @@ int main ( int argc, char ** argv ) {
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
     hts_idx_destroy ( index );
-    stats_destroy ( stats );
+    stats_destroy ( stats[0] );
+    stats_destroy ( stats[1] );
     sam_close( fp );
     free ( read );
     tr_destroy ( alias_index );
