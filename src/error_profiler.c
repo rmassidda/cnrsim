@@ -228,10 +228,12 @@ int main ( int argc, char ** argv ) {
         itr = bam_itr_querys( index, hdr, alias);
         if ( itr != NULL ){
             while( bam_itr_next( fp, itr, line ) > 0){
+
                 // Read information
                 pos = line->core.pos;
                 len = line->core.l_qseq;
-                uint8_t *q = bam_get_seq( line ); //quality string        
+                uint8_t *read_seq = bam_get_seq( line ); // Read nucleotides
+                uint8_t *qual = bam_get_qual ( line ); // Quality score
 
                 // Interval of the reference
                 flank_1 = floor ( log ( 2 * len ) / log ( 2 ) );
@@ -241,7 +243,7 @@ int main ( int argc, char ** argv ) {
                 read = realloc ( read, sizeof ( char ) * ( len + 1 ) );
                 int i;
                 for ( i = 0; i < len; i++ ){
-                    read[i] = seq_nt16_str[ bam_seqi ( q, i ) ];
+                    read[i] = seq_nt16_str[ bam_seqi ( read_seq, i ) ];
                 }
                 read[i] = 0;
 
