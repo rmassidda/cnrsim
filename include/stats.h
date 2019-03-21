@@ -9,24 +9,21 @@
 
 #ifndef STATS
 #define STATS
-#define N_STAT 5
 #include <stdbool.h>
 #include <stdio.h>
+#include "source.h"
 
 enum cigar{
-    M = 0,
-    D = 1,
-    I = 2,
-    X = 3,
-    L = 4
+    MAT = 0,
+    DEL = 1,
+    INS = 2,
+    MIS = 3,
 };
 
 typedef struct stats_t stats_t;
 
 struct stats_t {
-    unsigned long tot; // number of read analyzed
-    unsigned long * count[5]; // read length stats
-    int size; // maximum length of a statistic array
+    source_t * alignment;
 };
 
 /*
