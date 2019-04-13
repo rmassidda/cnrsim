@@ -12,8 +12,8 @@ typedef struct source_t source_t;
 typedef struct alphabet_t alphabet_t;
 
 struct alphabet_t {
-    unsigned char * symbols;
-    int length;
+    unsigned char * symbols; // symbols of the alphabet
+    int length; // number of symbols in the alphabet
 };
 
 struct source_t {
