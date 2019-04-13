@@ -13,64 +13,68 @@
 
 stats_t * stats_init ( ){
     stats_t * stats = malloc ( sizeof ( stats_t ) );
-    if ( stats != NULL ){
-        for ( int i = 0; i < N_STAT; i ++ ){
-            stats->count[i] = NULL;
-        }
-        stats->size = 0;
-        stats->tot = 0;
-    }
+    if ( stats == NULL ) return stats;
+    
+    // Alphabets
+    alphabet_t * alignment = NULL;
+    alphabet_t * nucleotides = alphabet_init ( ( unsigned char * )"ACGTN", 5 );
+
+    // Data sources
+    stats->alignment = source_init ( alignment, alignment, 1, 1 );
+    stats->mismatch = source_init ( nucleotides, nucleotides, 1, 1 );
+
     return stats;
 }
 
 bool stats_update ( stats_t * stats, unsigned char * align, int alg_len, char * read, int read_len, char * reference ){
-    // Memory must be reallocated
-    // alg_len >= read_len
-    if ( alg_len > stats->size ){
-        for ( int i = 0; i < N_STAT; i ++ ){
-            unsigned long * tmp;
-            tmp = realloc ( stats->count[i], sizeof ( unsigned long ) * ( alg_len ) );
-            // Check realloc
-            if ( tmp == NULL ) {
-                return false;
-            }
-            stats->count[i] = tmp;
-            // Clean memory
-            // for ( int j = stats->size; j < alg_len; j ++ ){
-            //     stats->count[i][j] = 0;
-            // }
-            memset ( &stats->count[i][stats->size], 0, sizeof ( unsigned long )  * ( alg_len - stats->size ) );
-        }
-    }
+    int read_pos = 0;
+    int ref_pos = 0;
 
-    stats->size = alg_len;
-    stats->tot ++;
-    stats->count[L][read_len - 1] ++;
-
-    // Variation stats
     for ( int i = 0; i < alg_len; i ++ ){
-        stats->count[align[i]][i] ++;
+        switch ( align[i] ){
+            case MAT:
+                read_pos ++;
+                ref_pos ++;
+                break;
+            case MIS:
+                source_update (
+                        ( unsigned char * ) &reference[ref_pos],
+                        read_pos,
+                        read[read_pos],
+                        stats->mismatch
+                        );
+                read_pos ++;
+                ref_pos ++;
+                break;
+            case INS:
+                read_pos ++;
+                break;
+            case DEL:
+                ref_pos ++;
+                break;
+        }
+        source_update (
+                &align[i-1],
+                i,
+                align[i],
+                stats->alignment
+        );
     }
-
     return true;
 }
 
-void stats_dump ( FILE * file, stats_t * stats ) {
-    fprintf ( file, "%ld\n", stats->tot );
-    printf ( "P\tM\tD\tI\tX\tL\n" );
-    for ( int i = 0; i < stats->size; i ++ ){
-        printf ( "%d\t", i );
-        for ( int j = 0; j < N_STAT; j ++ ){
-            printf ( "%ld\t", stats->count[j][i] );
-        }
-        printf ( "\n" );
-    }
-}
+void stats_dump ( FILE * file, stats_t * stats ) {}
 
-void stats_destroy ( stats_t * stats ){
-    for ( int i = 0; i < N_STAT; i ++ ){
-        free ( stats->count[i] );
-    }
+void stats_destroy ( stats_t * stats ) {
+    // Free alphabets
+    free ( stats->alignment->omega );
+    free ( stats->alignment->sigma );
+    free ( stats->mismatch->omega );
+    free ( stats->mismatch->sigma );
+    // Free sources
+    source_destroy ( stats->alignment ); 
+    source_destroy ( stats->mismatch ); 
+    // Free structure
     free ( stats );
 }
 
