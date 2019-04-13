@@ -25,6 +25,7 @@ typedef struct stats_t stats_t;
 struct stats_t {
     source_t * alignment;
     source_t * mismatch;
+    source_t * quality;
 };
 
 /*

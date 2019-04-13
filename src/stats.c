@@ -18,10 +18,14 @@ stats_t * stats_init ( ){
     // Alphabets
     alphabet_t * alignment = NULL;
     alphabet_t * nucleotides = alphabet_init ( ( unsigned char * )"ACGTN", 5 );
+    alphabet_t * quality = alphabet_init (
+            ( unsigned char * ) "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            94 );
 
     // Data sources
     stats->alignment = source_init ( alignment, alignment, 1, 1 );
     stats->mismatch = source_init ( nucleotides, nucleotides, 1, 1 );
+    stats->quality = source_init ( alignment, quality, 1, 1 );
 
     return stats;
 }
