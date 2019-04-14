@@ -9,63 +9,37 @@
 #define SOURCE_H
 
 typedef struct source_t source_t;
-typedef struct alphabet_t alphabet_t;
-
-struct alphabet_t {
-    unsigned char * symbols; // symbols of the alphabet
-    int length; // number of symbols in the alphabet
-};
 
 struct source_t {
-    int m; // memory of the source
-    int k; // sampling finite precision
     int n; // number of matrixes
     unsigned long ** raw; // data
-    alphabet_t * sigma; // input alphabet
-    alphabet_t * omega; // output alphabet
-    int column_size; // column
+    double ** normalized; // normalized data
+    int m; // memory
+    int sigma; // input alphabet
+    int omega; // output alphabet
 };
-
-/*
- * Initialize an alphabet
- *
- * @param       symbols
- * @param       length
- * @returns     the initialized alphabet
- */
-alphabet_t * alphabet_init ( unsigned char * symbols, int length );
-
-/*
- * Contiguos hash
- *
- * @param       word
- * @param       length
- * @param       alphabet
- * @returns     hash value
- */
-int alphabet_hash ( unsigned char * word, int length, alphabet_t * alphabet );
 
 /*
  * Initialize the source
  *
  * @param       sigma   input alphabet
  * @param       omega   output alphabet
- * @param       m       finite memory
- * @param       k       sampling finite precision
+ * @param       m       memory
  * @returns     the initialized structure
  */
-source_t * source_init ( alphabet_t * sigma, alphabet_t * omega, int m, int k );
+source_t * source_init ( int sigma, int omega, int m );
 
 /*
  * Updates the data with a new example
  *
- * @param       prefix  string containing the prefix
+ * @param       in      input prefix
  * @param       out     output character
+ * @param       len     lenghth of the prefix
  * @param       pos     position of the example
  * @param       source  source to be updated
  * @returns     0 on success, -1 otherwise 
  */
-int source_update ( unsigned char * prefix, int pos, unsigned char out, source_t * source ); 
+int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source ); 
 
 /*
  * Generates a character given a prefix
@@ -76,7 +50,7 @@ int source_update ( unsigned char * prefix, int pos, unsigned char out, source_t
  * @param       source  source to be used
  * @returns     output character given the learned probabilities
  */
-unsigned char source_generate ( unsigned char * prefix, int pos, source_t * source );
+unsigned char source_generate ( unsigned char in, int pos, source_t * source );
 
 /*
  * Deallocates a source
