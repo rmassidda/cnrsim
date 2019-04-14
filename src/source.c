@@ -1,7 +1,7 @@
 /*
  * CNRSIM
  * source.c
- * Finite memory sequence generator
+     * Finite memory sequence generator
  *
  * @author Riccardo Massidda
  */
@@ -35,31 +35,40 @@ source_t * source_init ( int sigma, int omega, int m ){
     return source;
 }
 
-int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source ){
+int __index ( unsigned char * in, int len, source_t * source ){
+    int i = 0;
+    int empty = source->m - len;
     int index = 0;
-    int char_value = 0;
+    // Empty characters
+    while ( i < empty ){
+        // The last character in sigma is used to represent an uncomplete prefix
+        index += ( source->sigma - 1 ) * ( int ) pow ( source->sigma, source->m - i - 1 );
+        i ++;
+    }
+    // Actual prefix
+    while ( i < source->m ){
+        index += ( in[ i - empty ] * ( int ) pow ( source->sigma, source->m - i - 1 ) );
+        i ++;
+    }
+    return index;
+}
 
+
+int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source ){
     if ( pos >= source->n ){
         source->raw = realloc ( source->raw, sizeof ( unsigned long * ) * ( pos + 1 ) );
 
         // New matrices
         for ( int i = source->n; i <= pos; i ++ ){
             source->raw[i] = calloc ( 
-                    source->omega * source->sigma,
+                    source->omega * ( int ) pow ( source->sigma, source->m ),
                     sizeof ( unsigned long )
                     );
         }
         source->n = pos + 1;
     }
 
-    for ( int i = 0; i < source->m; i ++ ){
-        if ( i < len )
-            char_value = in[len - i - 1];
-        else
-            char_value = source->sigma - 1;
-
-        index += char_value * pow ( source->sigma, i );
-    }
+    int index = __index ( in, len, source);
 
     //  Update stats
     source->raw[pos][ index * source->omega + out ] ++;
@@ -74,10 +83,10 @@ void __normalize ( source_t * source ) {
     source->normalized = malloc ( sizeof ( double * ) * source->n );
     for ( int i = 0; i < source->n; i ++ ){
         source->normalized[i] = calloc ( 
-                source->omega * source->sigma,
+                source->omega * ( int ) pow ( source->sigma, source->m ),
                 sizeof ( double )
                 );
-        for ( int j = 0; j < source->sigma; j ++ ){
+        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ){
             sum = 0;
             for ( int k = 0; k < source->omega; k ++ ) {
                 sum += source->raw[i][ j * source->omega + k ];
@@ -94,7 +103,7 @@ void __normalize ( source_t * source ) {
     }
 }
 
-unsigned char source_generate ( unsigned char in, int pos, source_t * source ){
+unsigned char source_generate ( unsigned char * in, int len, int pos, source_t * source ){
     double * p;
     double outcome;
     double threshold;
@@ -107,9 +116,9 @@ unsigned char source_generate ( unsigned char in, int pos, source_t * source ){
     // Random decision about the alternatives
     outcome = ( double ) rand() / RAND_MAX;
     threshold = 0;
-    p = & ( source->normalized[pos][ in * source->omega ] );
+    int index = __index ( in, len, source );
+    p = & ( source->normalized[pos][ index * source->omega ] );
     for ( int i = 0; i < source->omega; i++ ) {
-        //printf ( "%d -> %d %f %f %f\n", in, i, threshold, outcome, threshold + *p );
         if ( threshold <= outcome && outcome < threshold + *p ) {
             return ( unsigned char ) i;
         } else {
@@ -125,5 +134,9 @@ void source_destroy ( source_t * source ){
         free ( source->raw[i] );
     }
     free ( source->raw );
+    for ( int i = 0; i < source->n; i ++ ){
+        free ( source->normalized[i] );
+    }
+    free ( source->normalized );
     free ( source );
 }

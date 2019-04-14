@@ -46,11 +46,12 @@ int source_update ( unsigned char * in, int len, int pos, unsigned char out, sou
  * and a position
  *
  * @param       prefix  string containing the prefix
+ * @param       len     lenghth of the prefix
  * @param       pos     position of the example
  * @param       source  source to be used
  * @returns     output character given the learned probabilities
  */
-unsigned char source_generate ( unsigned char in, int pos, source_t * source );
+unsigned char source_generate ( unsigned char * in, int len, int pos, source_t * source );
 
 /*
  * Deallocates a source
