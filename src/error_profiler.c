@@ -24,6 +24,30 @@ void usage ( char * name){
     fprintf(stderr, "Usage: %s [-d dictionary] [-a] [-v] [-e] bam_file fasta_file [allele_file ...]\n", name );
 }
 
+void stats_test ( stats_t * stats ) {
+    // Test generation
+    int m = stats->alignment->m;
+    int i = 0;
+    int pre;
+    char c;
+    unsigned char word[1024];
+
+    do{
+        pre = ( i < m ) ? i : m;
+        word[i] = source_generate ( &word[i-m], pre, i, stats->alignment );
+        switch ( word[i] ){
+            case 0: c = '='; break;
+            case 1: c = 'D'; break;
+            case 2: c = 'I'; break;
+            case 3: c = 'X'; break;
+            default: c = '\0';
+        }
+        printf ( "%c", c );
+        i ++;
+    }while ( c != '\0' );
+    printf ( "\n" );
+}
+
 void dump_read ( char * ref, int ref_len, int start, unsigned char * alignment, int alg_len, char * read , uint8_t * quality ){
     int z;
     char c;
@@ -352,6 +376,9 @@ int main ( int argc, char ** argv ) {
         stats_dump ( stdout, stats[0] );
         stats_dump ( stdout, stats[1] );
     }
+
+    for ( int i = 0; i < 100; i ++ )
+        stats_test ( stats[0] );
 
     // Cleanup
     for ( int i = 0; i < ploidy; i ++ ){
