@@ -147,9 +147,11 @@ void source_destroy ( source_t * source ){
         free ( source->raw[i] );
     }
     free ( source->raw );
-    for ( int i = 0; i < source->n; i ++ ){
-        free ( source->normalized[i] );
+    if ( source->normalized != NULL ){
+        for ( int i = 0; i < source->n; i ++ ){
+            free ( source->normalized[i] );
+        }
+        free ( source->normalized );
     }
-    free ( source->normalized );
     free ( source );
 }
