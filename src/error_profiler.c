@@ -313,12 +313,9 @@ int main ( int argc, char ** argv ) {
                 }
 
                 stats_update (
-                        stats[pair],
                         edlib_alg[min_index].alignment,
                         edlib_alg[min_index].alignmentLength,
-                        read,
-                        len,
-                        &seq[min_index]->sequence[edlib_alg[min_index].startLocations[0]]
+                        stats[pair]
                         );
 
                 for ( int i = 0; i < ploidy; i ++ ){
