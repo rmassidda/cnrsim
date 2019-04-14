@@ -24,8 +24,6 @@ typedef struct stats_t stats_t;
 
 struct stats_t {
     source_t * alignment;
-    source_t * mismatch;
-    source_t * quality;
 };
 
 /*
@@ -40,12 +38,8 @@ stats_t * stats_init ( );
  *
  * @param align         alignment string
  * @param alg_len       length of the alignment
- * @param read          readen nucleotides
- * @param read_len      length of the read
- * @param reference     reference sequence
- * @return false if the read is been ignored, true otherwise
  */
-bool stats_update ( stats_t * stats, unsigned char * align, int alg_len, char * read, int read_len, char * reference );
+void stats_update ( unsigned char * align, int alg_len, stats_t * stats );
 
 /*
  * Frees the memory
