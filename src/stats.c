@@ -17,12 +17,13 @@ stats_t * stats_init ( ){
     
     // Data sources
     // Alignment: alignment -> aligment
-    stats->alignment = source_init ( 4, 4, 0 );
+    stats->alignment = source_init ( 4, 5, 2 );
 
     return stats;
 }
 
 void stats_update ( unsigned char * align, int alg_len, stats_t * stats ){
+    // Alignment string
     source_learn_word ( align, alg_len, stats->alignment );
 }
 
