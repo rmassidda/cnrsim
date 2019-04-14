@@ -109,7 +109,7 @@ int main ( int argc, char ** argv ) {
     stats_t * stats[2];
     int pair;
     int min_score;
-    int min_index;
+    int min_index = 0;
 
     while ((opt = getopt(argc, argv, "svd:a")) != -1) {
         switch (opt) {
