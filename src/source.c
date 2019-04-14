@@ -25,8 +25,8 @@ source_t * source_init ( int sigma, int omega, int m ){
     source->m = m;
 
     // Alphabets
-    source->sigma = sigma + 1; // epsilon for uncomplete prefix
-    source->omega = omega;
+    source->sigma = sigma + 1; // exceptional start character
+    source->omega = omega + 1; // exceptional end character
 
     // Data
     source->raw = NULL;
@@ -79,14 +79,17 @@ int source_update ( unsigned char * in, int len, int pos, unsigned char out, sou
 void source_learn_word ( unsigned char * w, int size, source_t * source ){
     int m = source->m;
     int len;
-    for ( int i = 0; i < size; i ++ ){
+    int i;
+    for ( i = 0; i < size; i ++ ){
         // Length of the sample
         len = ( i < m ) ? i : m;
         // Check for overflow
-        if ( w[i] <= 128 ){
-            source_update ( &w[i-m], len, i, w[i], source );
-        }
+        source_update ( &w[i-m], len, i, w[i], source );
     }
+
+    // Add terminal char
+    len = ( i < m ) ? i : m;
+    source_update ( &w[i-m], len, i, source->omega - 1, source );
 }
 
 void __normalize ( source_t * source ) {
