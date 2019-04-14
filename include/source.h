@@ -42,6 +42,15 @@ source_t * source_init ( int sigma, int omega, int m );
 int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source ); 
 
 /*
+ * Updates the data collecting examples from
+ * a complete word.
+ *
+ * @param       w       word to train with
+ * @param       size    number of chars to learn
+ * @param       source  source to be updated
+ */
+void source_learn_word ( unsigned char * w, int size, source_t * source );
+/*
  * Generates a character given a prefix
  * and a position
  *

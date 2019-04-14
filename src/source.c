@@ -47,7 +47,7 @@ int __index ( unsigned char * in, int len, source_t * source ){
     }
     // Actual prefix
     while ( i < source->m ){
-        index += ( in[ i - empty ] * ( int ) pow ( source->sigma, source->m - i - 1 ) );
+        index += ( in[i] * ( int ) pow ( source->sigma, source->m - i - 1 ) );
         i ++;
     }
     return index;
@@ -74,6 +74,19 @@ int source_update ( unsigned char * in, int len, int pos, unsigned char out, sou
     source->raw[pos][ index * source->omega + out ] ++;
 
     return 0;
+}
+
+void source_learn_word ( unsigned char * w, int size, source_t * source ){
+    int m = source->m;
+    int len;
+    for ( int i = 0; i < size; i ++ ){
+        // Length of the sample
+        len = ( i < m ) ? i : m;
+        // Check for overflow
+        if ( w[i] <= 128 ){
+            source_update ( &w[i-m], len, i, w[i], source );
+        }
+    }
 }
 
 void __normalize ( source_t * source ) {
