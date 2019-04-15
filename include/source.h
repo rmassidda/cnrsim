@@ -17,6 +17,7 @@ struct source_t {
     int m; // memory
     int sigma; // input alphabet
     int omega; // output alphabet
+    int prefix; // number of possible prefixes
 };
 
 /*

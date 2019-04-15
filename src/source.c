@@ -29,6 +29,7 @@ source_t * source_init ( int sigma, int omega, int m ) {
     // Alphabets
     source->sigma = sigma + 1; // exceptional start character
     source->omega = omega + 1; // exceptional end character
+    source->prefix = ( int ) pow ( source->sigma, source->m );
 
     // Data
     source->raw = NULL;
@@ -38,20 +39,28 @@ source_t * source_init ( int sigma, int omega, int m ) {
 }
 
 int __index ( unsigned char * in, int len, source_t * source ) {
-    int i = 0;
+    int i;
     int empty = source->m - len;
     int index = 0;
+    int pow = 1;
+
+    // Actual prefix
+    i = 0;
+    while ( i < len ) {
+        index += ( in[len-1-i] * pow );
+        pow *= source->sigma;
+        i ++;
+    }
+
     // Empty characters
+    i = 0;
     while ( i < empty ) {
         // The last character in sigma is used to represent an uncomplete prefix
-        index += ( source->sigma - 1 ) * ( int ) pow ( source->sigma, source->m - i - 1 );
+        index += ( source->sigma - 1 ) * pow;
+        pow += source->sigma;
         i ++;
     }
-    // Actual prefix
-    while ( i < source->m ) {
-        index += ( in[i] * ( int ) pow ( source->sigma, source->m - i - 1 ) );
-        i ++;
-    }
+
     return index;
 }
 
@@ -63,7 +72,7 @@ int source_update ( unsigned char * in, int len, int pos, unsigned char out, sou
         // New matrices
         for ( int i = source->n; i <= pos; i ++ ) {
             source->raw[i] = calloc (
-                                 source->omega * ( int ) pow ( source->sigma, source->m ),
+                                 source->omega * source->prefix,
                                  sizeof ( unsigned long )
                              );
         }
@@ -101,10 +110,10 @@ void __normalize ( source_t * source ) {
     source->normalized = malloc ( sizeof ( double * ) * source->n );
     for ( int i = 0; i < source->n; i ++ ) {
         source->normalized[i] = calloc (
-                                    source->omega * ( int ) pow ( source->sigma, source->m ),
+                                    source->omega * source->prefix,
                                     sizeof ( double )
                                 );
-        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ) {
+        for ( int j = 0; j < source->prefix; j ++ ) {
             sum = 0;
             for ( int k = 0; k < source->omega; k ++ ) {
                 sum += source->raw[i][ j * source->omega + k ];
@@ -152,7 +161,7 @@ void source_dump ( FILE * file, source_t * source ) {
 
     for ( int i = 0; i < source->n; i ++ ) {
         fprintf ( file, "pos %d\n", i );
-        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ) {
+        for ( int j = 0; j < source->prefix; j ++ ) {
             for ( int z = 0; z < ( int ) source->omega; z ++ ) {
                 fprintf ( file, "%.2f ", source->normalized[i][j * source->omega + z] );
             }
