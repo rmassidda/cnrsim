@@ -22,6 +22,8 @@ stats_t * stats_init ( ) {
     stats->mismatch = source_init ( 5, 5, 1 );
     // Quality: cigar -> ASCII
     stats->quality = source_init ( 4, 128, 1 );
+    // Distribution of errors in read
+    stats->distribution = source_init ( 0, 4, 0 );
 
     return stats;
 }
@@ -77,6 +79,7 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
         }
         if ( align[z] != 2 ) {
             source_update ( &align[z], 1, i - 1, quality[i - 1], stats->quality );
+            source_update ( NULL, 0, i - 1, align[z], stats->distribution );
         }
     }
 }
@@ -84,10 +87,12 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
 void stats_dump ( FILE * file, stats_t * stats ) {
     fprintf ( file, "//Alignment prefix %d\n", stats->alignment->m );
     source_dump ( file, stats->alignment );
-    fprintf ( file, "//Mismatch" );
+    fprintf ( file, "//Mismatch\n" );
     source_dump ( file, stats->mismatch );
-    fprintf ( file, "//Quality score" );
+    fprintf ( file, "//Quality score\n" );
     source_dump ( file, stats->quality );
+    fprintf ( file, "//Length\n" );
+    source_dump ( file, stats->distribution );
 }
 
 void stats_destroy ( stats_t * stats ) {
@@ -95,6 +100,7 @@ void stats_destroy ( stats_t * stats ) {
     source_destroy ( stats->alignment );
     source_destroy ( stats->mismatch );
     source_destroy ( stats->quality );
+    source_destroy ( stats->distribution );
     // Free structure
     free ( stats );
 }

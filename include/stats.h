@@ -20,6 +20,7 @@ struct stats_t {
     source_t * alignment;
     source_t * mismatch;
     source_t * quality;
+    source_t * distribution;
 };
 
 /*
