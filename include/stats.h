@@ -12,18 +12,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "source.h"
-
-enum cigar{
-    MAT = 0,
-    DEL = 1,
-    INS = 2,
-    MIS = 3,
-};
+#include "allele.h"
 
 typedef struct stats_t stats_t;
 
 struct stats_t {
     source_t * alignment;
+    source_t * mismatch;
 };
 
 /*
@@ -38,8 +33,10 @@ stats_t * stats_init ( );
  *
  * @param align         alignment string
  * @param alg_len       length of the alignment
+ * @param read          readen nucleotides
+ * @param ref           reference sequence
  */
-void stats_update ( unsigned char * align, int alg_len, stats_t * stats );
+void stats_update ( unsigned char * align, int alg_len, char * read, char * ref, stats_t * stats );
 
 /*
  * Frees the memory

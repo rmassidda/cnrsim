@@ -48,50 +48,53 @@ void stats_test ( stats_t * stats ) {
     printf ( "\n" );
 }
 
-void dump_read ( char * ref, int ref_len, int start, unsigned char * alignment, int alg_len, char * read , uint8_t * quality ){
-    int z;
-    char c;
-    // Reference
-    printf ( "%.*s\n", ref_len, ref );
-    // Aligned Read
-    for ( z = 0; z < start; z ++ ) printf ( " " );
-    int j = 0;
-    for ( z = 0; z < alg_len; z++ ){
-        if ( alignment[z] == 'X' || alignment[z] == 3 ){
-            printf ( "|" );
-            j++;
-        }
-        else if ( alignment[z] == 'I' || alignment[z] == 2 ){
-            printf ( "|" );
-        } 
-        else if ( alignment[z] == 'D' || alignment [z] == 1){
-            j++;
-        }
-        else{
-            printf ( "%c", read[j] );
-            j++;
+void dump_read ( char * ref, unsigned char * alignment, int alg_len, char * read , uint8_t * quality ){
+    // Quality
+    for ( int z = 0; z < alg_len; z ++ ){
+        switch ( alignment[z] ){
+            case 0: printf ( "%c", (*quality+33) ); quality ++; break;
+            case 1: printf ( "%c", (*quality+33) ); quality ++; break;
+            case 2: printf ( " " ); break;
+            case 3: printf ( "%c", (*quality+33) ); quality ++; break;
         }
     }
-    printf ("\n");
-    for ( z = 0; z < start; z ++ ) printf ( " " );
-    printf("%s\n", read );
-    for ( z = 0; z < start; z ++ ) printf ( " " );
-    for ( z = 0; z < strlen ( read ); z ++ ) printf ( "%c", quality[z] + 33 );
-    printf ("\n");
+    printf ( "\n" );
+
+    // Read
+    for ( int z = 0; z < alg_len; z ++ ){
+        switch ( alignment[z] ){
+            case 0: printf ( "%c", *read ); read ++; break;
+            case 1: printf ( "%c", *read ); read ++; break;
+            case 2: printf ( " " ); break;
+            case 3: printf ( "%c", *read ); read ++; break;
+        }
+    }
+    printf ( "\n" );
     
     // Alignment
-    for ( z = 0; z < start; z ++ ) printf ( " " );
-    for ( z = 0; z < alg_len; z ++ ){
+    for ( int z = 0; z < alg_len; z ++ ){
         switch ( alignment[z] ){
-            case 0: c = '='; break;
-            case 1: c = 'D'; break;
-            case 2: c = 'I'; break;
-            case 3: c = 'X'; break;
-            default: c = alignment[z];
+            case 0: printf ("="); break;
+            case 1: printf ("I"); break;
+            case 2: printf ("D"); break;
+            case 3: printf ("!"); break;
         }
-        printf ( "%c", c );
     }
-    printf ( "\n\n" );
+    printf ( "\n" );
+
+    // Reference
+    for ( int z = 0; z < alg_len; z ++ ){
+        switch ( alignment[z] ){
+            case 0: printf ( "%c", *ref ); ref ++; break;
+            case 1: printf ( " " ); break;
+            case 2: printf ( "%c", *ref ); ref ++; break;
+            case 3: printf ( "%c", *ref ); ref ++; break;
+        }
+    }
+    printf ( "\n" );
+
+    // Newline
+    printf ( "\n" );
 }
 
 int main ( int argc, char ** argv ) {
@@ -133,6 +136,7 @@ int main ( int argc, char ** argv ) {
     stats_t * stats[2];
     int pair;
     int min_score;
+    int min_start = 0;
     int min_index = 0;
 
     while ((opt = getopt(argc, argv, "svd:a")) != -1) {
@@ -320,15 +324,13 @@ int main ( int argc, char ** argv ) {
                     // Select best alignment
                     if ( i == 0 || edlib_alg[i].editDistance < min_score ){
                         min_index = i;
+                        min_start = start + edlib_alg[i].startLocations[0];
                         min_score = edlib_alg[i].editDistance;
                     }
 
                     if ( verbose ){
-                        printf ( "%d\n", edlib_alg[i].editDistance );
                         dump_read (
-                            &curr_seq->sequence[start],
-                            end - start,
-                            edlib_alg[i].startLocations[0],
+                            &curr_seq->sequence[start + edlib_alg[i].startLocations[0]],
                             edlib_alg[i].alignment,
                             edlib_alg[i].alignmentLength,
                             read,
@@ -339,6 +341,8 @@ int main ( int argc, char ** argv ) {
                 stats_update (
                         edlib_alg[min_index].alignment,
                         edlib_alg[min_index].alignmentLength,
+                        read,
+                        &allele[min_index]->sequence[min_start],
                         stats[pair]
                         );
 
@@ -376,9 +380,6 @@ int main ( int argc, char ** argv ) {
         stats_dump ( stdout, stats[0] );
         stats_dump ( stdout, stats[1] );
     }
-
-    for ( int i = 0; i < 100; i ++ )
-        stats_test ( stats[0] );
 
     // Cleanup
     for ( int i = 0; i < ploidy; i ++ ){
