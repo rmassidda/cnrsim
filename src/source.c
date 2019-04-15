@@ -57,7 +57,7 @@ int __index ( unsigned char * in, int len, source_t * source ) {
     while ( i < empty ) {
         // The last character in sigma is used to represent an uncomplete prefix
         index += ( source->sigma - 1 ) * pow;
-        pow += source->sigma;
+        pow *= source->sigma;
         i ++;
     }
 
