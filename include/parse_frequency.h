@@ -22,7 +22,7 @@ double * linear ( int n, double * p );
 
 /*
  * Parser of dbSNP string that
- * contains allelic frequency 
+ * contains allelic frequency
  *
  * @param n number of alleles
  * @param freq pointer to dbSNP string

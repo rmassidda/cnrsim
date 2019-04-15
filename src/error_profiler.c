@@ -20,8 +20,8 @@
 #include "stats.h"
 #include "translate_notation.h"
 
-void usage ( char * name){
-    fprintf(stderr, "Usage: %s [-d dictionary] [-a] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
+void usage ( char * name ) {
+    fprintf ( stderr, "Usage: %s [-d dictionary] [-a] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
 }
 
 void stats_test ( stats_t * stats ) {
@@ -32,63 +32,113 @@ void stats_test ( stats_t * stats ) {
     char c;
     unsigned char word[1024];
 
-    do{
+    do {
         pre = ( i < m ) ? i : m;
-        word[i] = source_generate ( &word[i-m], pre, i, stats->alignment );
-        switch ( word[i] ){
-            case 0: c = '='; break;
-            case 1: c = 'D'; break;
-            case 2: c = 'I'; break;
-            case 3: c = 'X'; break;
-            default: c = '\0';
+        word[i] = source_generate ( &word[i - m], pre, i, stats->alignment );
+        switch ( word[i] ) {
+        case 0:
+            c = '=';
+            break;
+        case 1:
+            c = 'D';
+            break;
+        case 2:
+            c = 'I';
+            break;
+        case 3:
+            c = 'X';
+            break;
+        default:
+            c = '\0';
         }
         printf ( "%c", c );
         i ++;
-    }while ( c != '\0' );
+    } while ( c != '\0' );
     printf ( "\n" );
 }
 
-void dump_read ( char * ref, unsigned char * alignment, int alg_len, char * read , uint8_t * quality ){
+void dump_read ( char * ref, unsigned char * alignment, int alg_len, char * read, uint8_t * quality ) {
     // Quality
-    for ( int z = 0; z < alg_len; z ++ ){
-        switch ( alignment[z] ){
-            case 0: printf ( "%c", (*quality+33) ); quality ++; break;
-            case 1: printf ( "%c", (*quality+33) ); quality ++; break;
-            case 2: printf ( " " ); break;
-            case 3: printf ( "%c", (*quality+33) ); quality ++; break;
+    for ( int z = 0; z < alg_len; z ++ ) {
+        switch ( alignment[z] ) {
+        case 0:
+            printf ( "%c", ( *quality + 33 ) );
+            quality ++;
+            break;
+        case 1:
+            printf ( "%c", ( *quality + 33 ) );
+            quality ++;
+            break;
+        case 2:
+            printf ( " " );
+            break;
+        case 3:
+            printf ( "%c", ( *quality + 33 ) );
+            quality ++;
+            break;
         }
     }
     printf ( "\n" );
 
     // Read
-    for ( int z = 0; z < alg_len; z ++ ){
-        switch ( alignment[z] ){
-            case 0: printf ( "%c", *read ); read ++; break;
-            case 1: printf ( "%c", *read ); read ++; break;
-            case 2: printf ( " " ); break;
-            case 3: printf ( "%c", *read ); read ++; break;
+    for ( int z = 0; z < alg_len; z ++ ) {
+        switch ( alignment[z] ) {
+        case 0:
+            printf ( "%c", *read );
+            read ++;
+            break;
+        case 1:
+            printf ( "%c", *read );
+            read ++;
+            break;
+        case 2:
+            printf ( " " );
+            break;
+        case 3:
+            printf ( "%c", *read );
+            read ++;
+            break;
         }
     }
     printf ( "\n" );
-    
+
     // Alignment
-    for ( int z = 0; z < alg_len; z ++ ){
-        switch ( alignment[z] ){
-            case 0: printf ("="); break;
-            case 1: printf ("I"); break;
-            case 2: printf ("D"); break;
-            case 3: printf ("!"); break;
+    for ( int z = 0; z < alg_len; z ++ ) {
+        switch ( alignment[z] ) {
+        case 0:
+            printf ( "=" );
+            break;
+        case 1:
+            printf ( "I" );
+            break;
+        case 2:
+            printf ( "D" );
+            break;
+        case 3:
+            printf ( "!" );
+            break;
         }
     }
     printf ( "\n" );
 
     // Reference
-    for ( int z = 0; z < alg_len; z ++ ){
-        switch ( alignment[z] ){
-            case 0: printf ( "%c", *ref ); ref ++; break;
-            case 1: printf ( " " ); break;
-            case 2: printf ( "%c", *ref ); ref ++; break;
-            case 3: printf ( "%c", *ref ); ref ++; break;
+    for ( int z = 0; z < alg_len; z ++ ) {
+        switch ( alignment[z] ) {
+        case 0:
+            printf ( "%c", *ref );
+            ref ++;
+            break;
+        case 1:
+            printf ( " " );
+            break;
+        case 2:
+            printf ( "%c", *ref );
+            ref ++;
+            break;
+        case 3:
+            printf ( "%c", *ref );
+            ref ++;
+            break;
         }
     }
     printf ( "\n" );
@@ -114,11 +164,11 @@ int main ( int argc, char ** argv ) {
     // Pointers
     struct sequence_t * curr_seq;
     // BAM
-    htsFile *fp;
-    bam_hdr_t *hdr;
-    bam1_t *line;
-    hts_idx_t *index;
-    hts_itr_t *itr;
+    htsFile * fp;
+    bam_hdr_t * hdr;
+    bam1_t * line;
+    hts_idx_t * index;
+    hts_itr_t * itr;
     // Alias dictionary
     region_index_t * alias_index = NULL;
     char * alias = NULL;
@@ -139,47 +189,47 @@ int main ( int argc, char ** argv ) {
     int min_start = 0;
     int min_index = 0;
 
-    while ((opt = getopt(argc, argv, "svd:a")) != -1) {
-        switch (opt) {
-            case 's':
-                silent = true;
-                break;
-            case 'v':
-                verbose = true;
-                break;
-            case 'd':
-                dictionary = optarg;
-                break;
-            case 'a':
-                alternative = true;
-                break;
-            case '?':
-                if (optopt == 'd')
-                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-                else if (isprint (optopt))
-                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-                else
-                    fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-                exit ( EXIT_FAILURE );
-            default:
-                usage ( argv[0] );
-                exit(EXIT_FAILURE);
+    while ( ( opt = getopt ( argc, argv, "svd:a" ) ) != -1 ) {
+        switch ( opt ) {
+        case 's':
+            silent = true;
+            break;
+        case 'v':
+            verbose = true;
+            break;
+        case 'd':
+            dictionary = optarg;
+            break;
+        case 'a':
+            alternative = true;
+            break;
+        case '?':
+            if ( optopt == 'd' )
+                fprintf ( stderr, "Option -%c requires an argument.\n", optopt );
+            else if ( isprint ( optopt ) )
+                fprintf ( stderr, "Unknown option `-%c'.\n", optopt );
+            else
+                fprintf ( stderr, "Unknown option character `\\x%x'.\n", optopt );
+            exit ( EXIT_FAILURE );
+        default:
+            usage ( argv[0] );
+            exit ( EXIT_FAILURE );
         }
     }
 
-    if ( dictionary != NULL ){
+    if ( dictionary != NULL ) {
         // Alias dictionary
         alias_index = tr_init ( dictionary );
-        if ( alias_index == NULL ){
+        if ( alias_index == NULL ) {
             perror ( "Can't load alias dictionary" );
             exit ( EXIT_FAILURE );
         }
     }
 
     // Non optional arguments
-    if ( argc - optind < 2 ){
+    if ( argc - optind < 2 ) {
         usage ( argv[0] );
-        exit(EXIT_FAILURE);
+        exit ( EXIT_FAILURE );
     }
 
     // BAM file
@@ -189,7 +239,7 @@ int main ( int argc, char ** argv ) {
     line = bam_init1 ();
     // BAM index
     index = bam_index_load ( bam_fn );
-    if ( index == NULL ){
+    if ( index == NULL ) {
         // File not indexed
         perror ( "Can't load BAM index" );
         exit ( EXIT_FAILURE );
@@ -200,47 +250,47 @@ int main ( int argc, char ** argv ) {
 
     // Malloc of the structures
     fm = malloc ( sizeof ( struct filemanager_t * ) * 2 * ploidy );
-    seq = malloc ( sizeof ( struct sequence_t * ) * 2 * ploidy);
-    allele = malloc ( sizeof ( struct allele_t * ) * ploidy);
+    seq = malloc ( sizeof ( struct sequence_t * ) * 2 * ploidy );
+    allele = malloc ( sizeof ( struct allele_t * ) * ploidy );
     edlib_alg = malloc ( sizeof ( EdlibAlignResult ) * ploidy );
 
     // First read of all the sequences
-    for ( int i = 0; i < ploidy; i ++ ){
+    for ( int i = 0; i < ploidy; i ++ ) {
         // Read of the allele
         fm[i] = filemanager_init ( argv[optind] );
-        if ( fm[i] == NULL ){
-            exit (EXIT_FAILURE);
+        if ( fm[i] == NULL ) {
+            exit ( EXIT_FAILURE );
         }
         seq[i] = filemanager_next_seq ( fm[i], NULL );
-        if ( seq[i] == NULL ){
+        if ( seq[i] == NULL ) {
             exit ( EXIT_FAILURE );
         }
         // Alignment of the allele
         char * align_string = NULL;
-        if ( i != 0 ){
+        if ( i != 0 ) {
             int j = i + ploidy - 1;
             // Name of the alignment file
-            fasta_fn = realloc ( fasta_fn, sizeof(char) * ( strlen(argv[optind]) + 5 ) );
+            fasta_fn = realloc ( fasta_fn, sizeof ( char ) * ( strlen ( argv[optind] ) + 5 ) );
             strcpy ( fasta_fn, argv[optind] );
             strcat ( fasta_fn, ".alg" );
             // Read of the alignment
             fm [j] = filemanager_init ( fasta_fn );
-            if ( fm[j] == NULL ){
+            if ( fm[j] == NULL ) {
                 exit ( EXIT_FAILURE );
             }
             seq [j] = filemanager_next_seq ( fm[j], NULL );
-            if ( seq [j] == NULL ){
+            if ( seq [j] == NULL ) {
                 exit ( EXIT_FAILURE );
             }
             align_string = seq[j]->sequence;
         }
         // Allele creation
         allele[i] = allele_point (
-                seq[i]->sequence_size,
-                seq[i]->sequence,
-                align_string,
-                NULL
-                );
+                        seq[i]->sequence_size,
+                        seq[i]->sequence,
+                        align_string,
+                        NULL
+                    );
         optind ++;
     }
     curr_seq = seq[0];
@@ -255,21 +305,20 @@ int main ( int argc, char ** argv ) {
     // While there are sequences to read in the FASTA file
     while ( curr_seq != NULL ) {
         // Seek on the BAM
-        if ( dictionary != NULL ){
+        if ( dictionary != NULL ) {
             alias = tr_translate ( alias_index, curr_seq->label );
-        }
-        else{
+        } else {
             alias = curr_seq->label;
         }
-        itr = bam_itr_querys( index, hdr, alias);
-        if ( itr != NULL ){
-            while( bam_itr_next( fp, itr, line ) > 0){
+        itr = bam_itr_querys ( index, hdr, alias );
+        if ( itr != NULL ) {
+            while ( bam_itr_next ( fp, itr, line ) > 0 ) {
 
                 // Read information
                 pos = line->core.pos;
                 len = line->core.l_qseq;
-                uint8_t *read_seq = bam_get_seq( line ); // Read nucleotides
-                uint8_t *qual = bam_get_qual ( line ); // Quality score
+                uint8_t * read_seq = bam_get_seq ( line ); // Read nucleotides
+                uint8_t * qual = bam_get_qual ( line ); // Quality score
 
                 // Interval of the reference
                 flank_1 = floor ( log ( 2 * len ) / log ( 2 ) );
@@ -278,115 +327,112 @@ int main ( int argc, char ** argv ) {
                 // Read string
                 read = realloc ( read, sizeof ( char ) * ( len + 1 ) );
                 int i;
-                for ( i = 0; i < len; i++ ){
+                for ( i = 0; i < len; i++ ) {
                     read[i] = seq_nt16_str[ bam_seqi ( read_seq, i ) ];
                 }
                 read[i] = 0;
 
                 // Paired end
-                if ( line->core.flag & BAM_FREAD2 ){
+                if ( line->core.flag & BAM_FREAD2 ) {
                     pair = 1;
-                }
-                else{
+                } else {
                     pair = 0;
                 }
 
-                for ( i = 0; i < ploidy; i ++ ){
+                for ( i = 0; i < ploidy; i ++ ) {
                     curr_seq = seq[i];
                     // Seek on the allele
                     allele_seek ( pos, allele[i] );
-                    
+
                     // Flanking regions
                     start = allele[i]->pos;
-                    if ( start - flank_1 < 0 ){
+                    if ( start - flank_1 < 0 ) {
                         start = 0;
-                    }
-                    else {
+                    } else {
                         start -= flank_1;
                     }
 
                     end = allele[i]->pos + len;
-                    if ( end + flank_2 >= curr_seq->sequence_size ){
+                    if ( end + flank_2 >= curr_seq->sequence_size ) {
                         end = curr_seq->sequence_size - 1;
-                    }
-                    else{
+                    } else {
                         end += flank_2;
                     }
 
                     // Align
                     edlib_alg[i] = edlibAlign (
-                            read,
-                            len,
-                            &curr_seq->sequence[start],
-                            end - start,
-                            config );
-                    
+                                       read,
+                                       len,
+                                       &curr_seq->sequence[start],
+                                       end - start,
+                                       config );
+
                     // Select best alignment
-                    if ( i == 0 || edlib_alg[i].editDistance < min_score ){
+                    if ( i == 0 || edlib_alg[i].editDistance < min_score ) {
                         min_index = i;
                         min_start = start + edlib_alg[i].startLocations[0];
                         min_score = edlib_alg[i].editDistance;
                     }
 
-                    if ( verbose ){
+                    if ( verbose ) {
                         dump_read (
                             &curr_seq->sequence[start + edlib_alg[i].startLocations[0]],
                             edlib_alg[i].alignment,
                             edlib_alg[i].alignmentLength,
                             read,
-                            qual);
+                            qual );
                     }
                 }
 
                 stats_update (
-                        edlib_alg[min_index].alignment,
-                        edlib_alg[min_index].alignmentLength,
-                        read,
-                        &allele[min_index]->sequence[min_start],
-                        qual,
-                        stats[pair]
-                        );
+                    edlib_alg[min_index].alignment,
+                    edlib_alg[min_index].alignmentLength,
+                    read,
+                    &allele[min_index]->sequence[min_start],
+                    qual,
+                    stats[pair]
+                );
 
-                for ( int i = 0; i < ploidy; i ++ ){
+                for ( int i = 0; i < ploidy; i ++ ) {
                     edlibFreeAlignResult ( edlib_alg[i] );
                 }
             }
-        }		
+        }
         // Next sequence
-        for ( int i = 0; i < ploidy; i ++ ){
+        for ( int i = 0; i < ploidy; i ++ ) {
             seq[i] = filemanager_next_seq ( fm[i], seq[i] );
             char * align_string = NULL;
-            if ( i != 0 ){
+            if ( i != 0 ) {
                 int j = i + ploidy - 1;
                 seq[j] = filemanager_next_seq ( fm[j], seq[j] );
-                if ( seq[j] != NULL ){
+                if ( seq[j] != NULL ) {
                     align_string = seq[j]->sequence;
                 }
             }
-            if ( seq[i] != NULL) {
+            if ( seq[i] != NULL ) {
                 // Update allele
                 allele[i] = allele_point (
-                        seq[i]->sequence_size,
-                        seq[i]->sequence,
-                        align_string,
-                        allele[i]
-                        );
+                                seq[i]->sequence_size,
+                                seq[i]->sequence,
+                                align_string,
+                                allele[i]
+                            );
             }
         }
         curr_seq = seq[0];
     }
 
     // Dump statistics
-    if ( !silent ){
+    if ( !silent ) {
         stats_dump ( stdout, stats[0] );
         stats_dump ( stdout, stats[1] );
     }
 
     // Cleanup
-    for ( int i = 0; i < ploidy; i ++ ){
+    for ( int i = 0; i < ploidy; i ++ ) {
         filemanager_destroy ( fm[i] );
         free ( allele[i] );
-        if ( i != 0 ){
+        if ( i != 0 ) {
             int j = i + ploidy - 1;
             filemanager_destroy ( fm [j] );
         }
@@ -395,13 +441,13 @@ int main ( int argc, char ** argv ) {
     free ( seq );
     free ( allele );
     free ( edlib_alg );
-    bam_destroy1( line );
+    bam_destroy1 ( line );
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
     hts_idx_destroy ( index );
     stats_destroy ( stats[0] );
     stats_destroy ( stats[1] );
-    sam_close( fp );
+    sam_close ( fp );
     free ( read );
     tr_destroy ( alias_index );
     return 0;

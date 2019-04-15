@@ -37,9 +37,9 @@ source_t * source_init ( int sigma, int omega, int m );
  * @param       len     lenghth of the prefix
  * @param       pos     position of the example
  * @param       source  source to be updated
- * @returns     0 on success, -1 otherwise 
+ * @returns     0 on success, -1 otherwise
  */
-int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source ); 
+int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source );
 
 /*
  * Updates the data collecting examples from

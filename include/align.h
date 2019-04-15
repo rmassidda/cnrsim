@@ -3,7 +3,7 @@
 
 typedef struct aligner_t aligner_t;
 
-enum error{
+enum error {
     GAP = -1,
     MATCH = 1,
     MISMATCH = 0
@@ -47,7 +47,7 @@ char * build_alignment ( aligner_t * al ) ;
 
 char * alignment ( aligner_t * al ) ;
 
-/* 
+/*
  * Prints the matrixes.
  *
  * @param al pointer to the aligner

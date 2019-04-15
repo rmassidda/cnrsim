@@ -191,7 +191,7 @@ struct sequence_t * __filemanager_next_seq ( struct filemanager * fmobj, struct 
                     }
                     seq->buffer_size +=  BUFF_SIZE;
                 }
-                seq->sequence[seq->sequence_size] = toupper( next_char );
+                seq->sequence[seq->sequence_size] = toupper ( next_char );
                 seq->sequence_size ++;
                 seq->sequence[seq->sequence_size] = '\0';
                 break;

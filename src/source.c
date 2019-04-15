@@ -12,12 +12,12 @@
 #include <math.h>
 #include "source.h"
 
-source_t * source_init ( int sigma, int omega, int m ){
+source_t * source_init ( int sigma, int omega, int m ) {
     source_t * source = malloc ( sizeof ( source_t ) );
-    if ( source == NULL ){
+    if ( source == NULL ) {
         return NULL;
     }
-    
+
     srand ( time ( NULL ) );
 
     // Matrixes
@@ -37,18 +37,18 @@ source_t * source_init ( int sigma, int omega, int m ){
     return source;
 }
 
-int __index ( unsigned char * in, int len, source_t * source ){
+int __index ( unsigned char * in, int len, source_t * source ) {
     int i = 0;
     int empty = source->m - len;
     int index = 0;
     // Empty characters
-    while ( i < empty ){
+    while ( i < empty ) {
         // The last character in sigma is used to represent an uncomplete prefix
         index += ( source->sigma - 1 ) * ( int ) pow ( source->sigma, source->m - i - 1 );
         i ++;
     }
     // Actual prefix
-    while ( i < source->m ){
+    while ( i < source->m ) {
         index += ( in[i] * ( int ) pow ( source->sigma, source->m - i - 1 ) );
         i ++;
     }
@@ -56,21 +56,21 @@ int __index ( unsigned char * in, int len, source_t * source ){
 }
 
 
-int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source ){
-    if ( pos >= source->n ){
+int source_update ( unsigned char * in, int len, int pos, unsigned char out, source_t * source ) {
+    if ( pos >= source->n ) {
         source->raw = realloc ( source->raw, sizeof ( unsigned long * ) * ( pos + 1 ) );
 
         // New matrices
-        for ( int i = source->n; i <= pos; i ++ ){
-            source->raw[i] = calloc ( 
-                    source->omega * ( int ) pow ( source->sigma, source->m ),
-                    sizeof ( unsigned long )
-                    );
+        for ( int i = source->n; i <= pos; i ++ ) {
+            source->raw[i] = calloc (
+                                 source->omega * ( int ) pow ( source->sigma, source->m ),
+                                 sizeof ( unsigned long )
+                             );
         }
         source->n = pos + 1;
     }
 
-    int index = __index ( in, len, source);
+    int index = __index ( in, len, source );
 
     //  Update stats
     source->raw[pos][ index * source->omega + out ] ++;
@@ -78,20 +78,20 @@ int source_update ( unsigned char * in, int len, int pos, unsigned char out, sou
     return 0;
 }
 
-void source_learn_word ( unsigned char * w, int size, source_t * source ){
+void source_learn_word ( unsigned char * w, int size, source_t * source ) {
     int m = source->m;
     int len;
     int i;
-    for ( i = 0; i < size; i ++ ){
+    for ( i = 0; i < size; i ++ ) {
         // Length of the sample
         len = ( i < m ) ? i : m;
         // Check for overflow
-        source_update ( &w[i-m], len, i, w[i], source );
+        source_update ( &w[i - m], len, i, w[i], source );
     }
 
     // Add terminal char
     len = ( i < m ) ? i : m;
-    source_update ( &w[i-m], len, i, source->omega - 1, source );
+    source_update ( &w[i - m], len, i, source->omega - 1, source );
 }
 
 void __normalize ( source_t * source ) {
@@ -99,21 +99,20 @@ void __normalize ( source_t * source ) {
 
     // Alloc matrix
     source->normalized = malloc ( sizeof ( double * ) * source->n );
-    for ( int i = 0; i < source->n; i ++ ){
-        source->normalized[i] = calloc ( 
-                source->omega * ( int ) pow ( source->sigma, source->m ),
-                sizeof ( double )
-                );
-        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ){
+    for ( int i = 0; i < source->n; i ++ ) {
+        source->normalized[i] = calloc (
+                                    source->omega * ( int ) pow ( source->sigma, source->m ),
+                                    sizeof ( double )
+                                );
+        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ) {
             sum = 0;
             for ( int k = 0; k < source->omega; k ++ ) {
                 sum += source->raw[i][ j * source->omega + k ];
             }
             for ( int k = 0; k < source->omega; k ++ ) {
-                if ( sum == 0 ){
+                if ( sum == 0 ) {
                     source->normalized[i][ j * source->omega + k ] = 0;
-                }
-                else {
+                } else {
                     source->normalized[i][ j * source->omega + k ] = source->raw[i][ j * source->omega + k ] / sum;
                 }
             }
@@ -121,13 +120,13 @@ void __normalize ( source_t * source ) {
     }
 }
 
-unsigned char source_generate ( unsigned char * in, int len, int pos, source_t * source ){
+unsigned char source_generate ( unsigned char * in, int len, int pos, source_t * source ) {
     double * p;
     double outcome;
     double threshold;
 
-    if ( source->normalized == NULL ){
-        __normalize( source );
+    if ( source->normalized == NULL ) {
+        __normalize ( source );
     }
 
     // Random decision about the alternatives
@@ -146,30 +145,30 @@ unsigned char source_generate ( unsigned char * in, int len, int pos, source_t *
     return 0;
 }
 
-void source_dump ( FILE * file, source_t * source ){
-    if ( source->normalized == NULL ){
+void source_dump ( FILE * file, source_t * source ) {
+    if ( source->normalized == NULL ) {
         __normalize ( source );
     }
 
-    for ( int i = 0; i < source->n; i ++ ){
+    for ( int i = 0; i < source->n; i ++ ) {
         fprintf ( file, "pos %d\n", i );
-        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ){
-            for ( int z = 0; z < ( int ) source->omega; z ++ ){
-                fprintf ( file, "%.2f ", source->normalized[i][j*source->omega+z] );
+        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ) {
+            for ( int z = 0; z < ( int ) source->omega; z ++ ) {
+                fprintf ( file, "%.2f ", source->normalized[i][j * source->omega + z] );
             }
-            fprintf ( file, "\n");
+            fprintf ( file, "\n" );
         }
         fprintf ( file, "\n" );
     }
 }
 
-void source_destroy ( source_t * source ){
-    for ( int i = 0; i < source->n; i ++ ){
+void source_destroy ( source_t * source ) {
+    for ( int i = 0; i < source->n; i ++ ) {
         free ( source->raw[i] );
     }
     free ( source->raw );
-    if ( source->normalized != NULL ){
-        for ( int i = 0; i < source->n; i ++ ){
+    if ( source->normalized != NULL ) {
+        for ( int i = 0; i < source->n; i ++ ) {
             free ( source->normalized[i] );
         }
         free ( source->normalized );

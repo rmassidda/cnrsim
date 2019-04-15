@@ -19,8 +19,8 @@
 #include "parse_frequency.h"
 #include "wrapper.h"
 
-void usage ( char * name){
-    fprintf(stderr, "Usage: %s [-n number of alleles] [-u udv_file] [-o output_name] fasta_file vcf_file\n", name );
+void usage ( char * name ) {
+    fprintf ( stderr, "Usage: %s [-n number of alleles] [-u udv_file] [-o output_name] fasta_file vcf_file\n", name );
 }
 
 int main ( int argc, char ** argv ) {
@@ -51,45 +51,45 @@ int main ( int argc, char ** argv ) {
     unsigned long int igno_alg = 0;
     unsigned long int udv_collision = 0;
 
-    while ((opt = getopt(argc, argv, "sn:u:o:")) != -1) {
-        switch (opt) {
-            case 's':
-                stats = true;
-                break;
-            case 'n':
-                ploidy = atoi ( optarg );
-                break;
-            case 'u':
-                udv_fn = optarg;
-                break;
-            case 'o':
-                out_fn = optarg;
-                break;
-            case '?':
-                if (optopt == 'u' || optopt == 'o')
-                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-                else if (isprint (optopt))
-                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-                else
-                    fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-                exit ( EXIT_FAILURE );
-            default:
-                usage ( argv[0] );
-                exit(EXIT_FAILURE);
+    while ( ( opt = getopt ( argc, argv, "sn:u:o:" ) ) != -1 ) {
+        switch ( opt ) {
+        case 's':
+            stats = true;
+            break;
+        case 'n':
+            ploidy = atoi ( optarg );
+            break;
+        case 'u':
+            udv_fn = optarg;
+            break;
+        case 'o':
+            out_fn = optarg;
+            break;
+        case '?':
+            if ( optopt == 'u' || optopt == 'o' )
+                fprintf ( stderr, "Option -%c requires an argument.\n", optopt );
+            else if ( isprint ( optopt ) )
+                fprintf ( stderr, "Unknown option `-%c'.\n", optopt );
+            else
+                fprintf ( stderr, "Unknown option character `\\x%x'.\n", optopt );
+            exit ( EXIT_FAILURE );
+        default:
+            usage ( argv[0] );
+            exit ( EXIT_FAILURE );
         }
     }
     // Non optional arguments
-    if ( argc - optind < 2 ){
+    if ( argc - optind < 2 ) {
         usage ( argv[0] );
-        exit(EXIT_FAILURE);
+        exit ( EXIT_FAILURE );
     }
     fasta_fn = argv[optind++];
     vcf_fn = argv[optind];
 
     // Allocate
-    allele = malloc ( sizeof ( allele_t* ) * ploidy );
-    output = malloc ( sizeof ( FILE* ) * ploidy );
-    alignment = malloc ( sizeof ( FILE* ) * ploidy );
+    allele = malloc ( sizeof ( allele_t * ) * ploidy );
+    output = malloc ( sizeof ( FILE * ) * ploidy );
+    alignment = malloc ( sizeof ( FILE * ) * ploidy );
 
 
     // Initialize wrapper
@@ -105,7 +105,7 @@ int main ( int argc, char ** argv ) {
      * Output files, one per allele
      * [filename_0.fa, filename_N.fa)
      */
-    if ( out_fn == NULL ){
+    if ( out_fn == NULL ) {
         out_fn = basename ( fasta_fn );
         out_fn = strtok ( out_fn, "." );
     }
@@ -113,7 +113,7 @@ int main ( int argc, char ** argv ) {
     for ( int i = 0; i < ploidy; i++ ) {
         sprintf ( str, "%s_%d.fa", out_fn, i );
         output[i] = fopen ( str, "w+" );
-        sprintf ( str, "%s_%d.fa.alg",out_fn, i );
+        sprintf ( str, "%s_%d.fa.alg", out_fn, i );
         alignment[i] = fopen ( str, "w+" );
     }
 
@@ -159,26 +159,23 @@ int main ( int argc, char ** argv ) {
                         allele_seek ( w->pos, allele[i] );
 
                         // Alternative
-                        int check = allele_variation ( 
-                                    w->ref,
-                                    w->alt[w->alt_index[i]],
-                                    allele[i]);
-                        if ( stats ){
-                            if ( check == 0 ){
+                        int check = allele_variation (
+                                        w->ref,
+                                        w->alt[w->alt_index[i]],
+                                        allele[i] );
+                        if ( stats ) {
+                            if ( check == 0 ) {
                                 done ++;
-                            }
-                            else if ( check == -1 ){
+                            } else if ( check == -1 ) {
                                 igno_ref ++;
-                            }
-                            else if ( check == -2 ){
+                            } else if ( check == -2 ) {
                                 igno_all ++;
-                            }
-                            else{
+                            } else {
                                 igno_alg ++;
                             }
                         }
                     }
-                } else if ( stats) {
+                } else if ( stats ) {
                     udv_collision++;
                 }
             }
@@ -187,10 +184,10 @@ int main ( int argc, char ** argv ) {
         for ( int i = 0; i < ploidy; i++ ) {
             allele_seek ( allele[i]->max_ref, allele[i] );
             allele_variation (
-                    &seq->sequence[allele[i]->max_ref],
-                    &seq->sequence[allele[i]->max_ref],
-                    allele[i]
-                    );
+                &seq->sequence[allele[i]->max_ref],
+                &seq->sequence[allele[i]->max_ref],
+                allele[i]
+            );
             allele_seek ( allele[i]->max_ref, allele[i] );
             // End of the sequence
             allele[i]->sequence[allele[i]->pos] = '\0';
@@ -206,7 +203,7 @@ int main ( int argc, char ** argv ) {
         // Next sequence
         seq = filemanager_next_seq ( fm, seq );
     }
-    if ( stats ){
+    if ( stats ) {
         unsigned long int sum = done + igno_ref + igno_all + igno_alg + udv_collision;
         printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
         printf ( "REF:\t%lu\t%.2f\n", igno_ref, igno_ref * 100.0 / sum );

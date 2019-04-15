@@ -11,7 +11,7 @@
 #include <string.h>
 #include "stats.h"
 
-stats_t * stats_init ( ){
+stats_t * stats_init ( ) {
     stats_t * stats = malloc ( sizeof ( stats_t ) );
     if ( stats == NULL ) return stats;
 
@@ -26,17 +26,21 @@ stats_t * stats_init ( ){
     return stats;
 }
 
-static unsigned char __nucleotide ( char nucleotide ){
-    switch ( nucleotide ){
-        case 'A': return 0;
-        case 'C': return 1;
-        case 'G': return 2;
-        case 'T': return 3;
+static unsigned char __nucleotide ( char nucleotide ) {
+    switch ( nucleotide ) {
+    case 'A':
+        return 0;
+    case 'C':
+        return 1;
+    case 'G':
+        return 2;
+    case 'T':
+        return 3;
     }
     return 4;
 }
 
-void stats_update ( unsigned char * align, int alg_len, char * read, char * ref, unsigned char * quality, stats_t * stats ){
+void stats_update ( unsigned char * align, int alg_len, char * read, char * ref, unsigned char * quality, stats_t * stats ) {
     // Pointers
     char * ptr_read = read;
     char * ptr_ref = ref;
@@ -47,23 +51,32 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
     source_learn_word ( align, alg_len, stats->alignment );
 
     // Read
-    for ( int z = 0; z < alg_len; z ++ ){
-        switch ( align[z] ){
-            case 0: i++; ptr_read ++; ptr_ref ++; break;
-            case 1: i++; ptr_read ++; break;
-            case 2: ptr_ref ++; break;
-            case 3: {
-                in = __nucleotide ( *ptr_ref );
-                out = __nucleotide ( *ptr_read );
-                source_update ( &in, 1, i, out, stats->mismatch );
-                i++;
-                ptr_ref++; 
-                ptr_read ++; 
-                break;
-            }
+    for ( int z = 0; z < alg_len; z ++ ) {
+        switch ( align[z] ) {
+        case 0:
+            i++;
+            ptr_read ++;
+            ptr_ref ++;
+            break;
+        case 1:
+            i++;
+            ptr_read ++;
+            break;
+        case 2:
+            ptr_ref ++;
+            break;
+        case 3: {
+            in = __nucleotide ( *ptr_ref );
+            out = __nucleotide ( *ptr_read );
+            source_update ( &in, 1, i, out, stats->mismatch );
+            i++;
+            ptr_ref++;
+            ptr_read ++;
+            break;
         }
-        if ( align[z] != 2 ){
-            source_update ( &align[z], 1, i-1, quality[i-1], stats->quality );
+        }
+        if ( align[z] != 2 ) {
+            source_update ( &align[z], 1, i - 1, quality[i - 1], stats->quality );
         }
     }
 }
@@ -79,9 +92,9 @@ void stats_dump ( FILE * file, stats_t * stats ) {
 
 void stats_destroy ( stats_t * stats ) {
     // Free sources
-    source_destroy ( stats->alignment ); 
-    source_destroy ( stats->mismatch ); 
-    source_destroy ( stats->quality ); 
+    source_destroy ( stats->alignment );
+    source_destroy ( stats->mismatch );
+    source_destroy ( stats->quality );
     // Free structure
     free ( stats );
 }

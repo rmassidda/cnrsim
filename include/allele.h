@@ -56,7 +56,7 @@ int allele_seek ( int position, allele_t * allele );
 
 /*
  * Applies a variation at the current allele position.
- * 
+ *
  * @param ref    reference string
  * @param alt    alternative to be applied
  * @param allele pointer to the structure

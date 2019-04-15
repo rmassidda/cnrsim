@@ -84,7 +84,7 @@ variation_set_t * udv_init ( char * filename, int ploidy ) {
 variation_t * udv_parse ( char * line, int ploidy ) {
     // Allocate variation
     variation_t * var = malloc ( sizeof ( variation_t ) );
-    var->all = malloc ( sizeof ( char* ) * ploidy );
+    var->all = malloc ( sizeof ( char * ) * ploidy );
     // Parse region
     char * region = strtok ( line, "\t" );
     if ( region == NULL ) {
@@ -106,9 +106,9 @@ variation_t * udv_parse ( char * line, int ploidy ) {
     var->ref = malloc ( sizeof ( char ) * ( strlen ( ref ) + 1 ) );
     strcpy ( var->ref, ref );
     // Parse allele
-    for ( int i = 0; i < ploidy; i ++ ){
+    for ( int i = 0; i < ploidy; i ++ ) {
         char * allele = strtok ( NULL, "\t" );
-        if ( allele == NULL ){
+        if ( allele == NULL ) {
             return NULL;
         }
         var->all[i] = malloc ( sizeof ( char ) * ( strlen ( allele ) + 1 ) );
@@ -174,7 +174,7 @@ void udv_destroy ( variation_set_t * set ) {
     for ( i = 0; i < set->n; i ++ ) {
         free ( set->elements[i]->region );
         free ( set->elements[i]->ref );
-        for ( int j = 0; j < set->ploidy; j++ ){
+        for ( int j = 0; j < set->ploidy; j++ ) {
             free ( set->elements[i]->all[j] );
         }
         free ( set->elements[i]->all );

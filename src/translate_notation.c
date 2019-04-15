@@ -37,19 +37,19 @@ region_index_t * tr_init ( char * filename ) {
 
         reg = strtok ( line, "\t" );
         translation = strtok ( NULL, "\t" );
-        if ( reg != NULL && translation != NULL ){
+        if ( reg != NULL && translation != NULL ) {
             // Update dictionary
             region_index_t * entry = malloc ( sizeof ( region_index_t ) );
             entry->reg = malloc ( sizeof ( char ) * ( strlen ( reg ) + 1 ) );
             entry->alt = malloc ( sizeof ( char ) * ( strlen ( translation ) + 1 ) );
             strcpy ( entry->reg, reg );
             strcpy ( entry->alt, translation );
-            HASH_ADD_KEYPTR ( 
-                    hh,
-                    index,
-                    entry->reg,
-                    strlen ( entry->reg ),
-                    entry                    
+            HASH_ADD_KEYPTR (
+                hh,
+                index,
+                entry->reg,
+                strlen ( entry->reg ),
+                entry
             );
         }
     }
