@@ -21,7 +21,7 @@
 #include "translate_notation.h"
 
 void usage ( char * name){
-    fprintf(stderr, "Usage: %s [-d dictionary] [-a] [-v] [-e] bam_file fasta_file [allele_file ...]\n", name );
+    fprintf(stderr, "Usage: %s [-d dictionary] [-a] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
 }
 
 void stats_test ( stats_t * stats ) {
