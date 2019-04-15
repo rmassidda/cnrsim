@@ -68,7 +68,14 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
     }
 }
 
-void stats_dump ( FILE * file, stats_t * stats ) {}
+void stats_dump ( FILE * file, stats_t * stats ) {
+    fprintf ( file, "//Alignment prefix %d\n", stats->alignment->m );
+    source_dump ( file, stats->alignment );
+    fprintf ( file, "//Mismatch" );
+    source_dump ( file, stats->mismatch );
+    fprintf ( file, "//Quality score" );
+    source_dump ( file, stats->quality );
+}
 
 void stats_destroy ( stats_t * stats ) {
     // Free sources

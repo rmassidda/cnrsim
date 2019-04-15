@@ -50,6 +50,7 @@ int source_update ( unsigned char * in, int len, int pos, unsigned char out, sou
  * @param       source  source to be updated
  */
 void source_learn_word ( unsigned char * w, int size, source_t * source );
+
 /*
  * Generates a character given a prefix
  * and a position
@@ -61,6 +62,14 @@ void source_learn_word ( unsigned char * w, int size, source_t * source );
  * @returns     output character given the learned probabilities
  */
 unsigned char source_generate ( unsigned char * in, int len, int pos, source_t * source );
+
+/*
+ * Dumps the content of a source to a file
+ *
+ * @param       file    pointer to the file
+ * @param       source  source to be used
+ */
+void source_dump ( FILE * file, source_t * source );
 
 /*
  * Deallocates a source

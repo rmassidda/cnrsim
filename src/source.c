@@ -17,6 +17,8 @@ source_t * source_init ( int sigma, int omega, int m ){
     if ( source == NULL ){
         return NULL;
     }
+    
+    srand ( time ( NULL ) );
 
     // Matrixes
     source->n = 0;
@@ -126,7 +128,6 @@ unsigned char source_generate ( unsigned char * in, int len, int pos, source_t *
 
     if ( source->normalized == NULL ){
         __normalize( source );
-        srand ( time ( NULL ) );
     }
 
     // Random decision about the alternatives
@@ -143,6 +144,23 @@ unsigned char source_generate ( unsigned char * in, int len, int pos, source_t *
         p ++;
     }
     return 0;
+}
+
+void source_dump ( FILE * file, source_t * source ){
+    if ( source->normalized == NULL ){
+        __normalize ( source );
+    }
+
+    for ( int i = 0; i < source->n; i ++ ){
+        fprintf ( file, "pos %d\n", i );
+        for ( int j = 0; j < ( int ) pow ( source->sigma, source->m ); j ++ ){
+            for ( int z = 0; z < ( int ) source->omega; z ++ ){
+                fprintf ( file, "%.2f ", source->normalized[i][j*source->omega+z] );
+            }
+            fprintf ( file, "\n");
+        }
+        fprintf ( file, "\n" );
+    }
 }
 
 void source_destroy ( source_t * source ){
