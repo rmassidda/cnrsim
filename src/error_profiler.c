@@ -343,6 +343,7 @@ int main ( int argc, char ** argv ) {
                         edlib_alg[min_index].alignmentLength,
                         read,
                         &allele[min_index]->sequence[min_start],
+                        qual,
                         stats[pair]
                         );
 

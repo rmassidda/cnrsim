@@ -20,6 +20,8 @@ stats_t * stats_init ( ){
     stats->alignment = source_init ( 4, 4, 2 );
     // Mismatch: nucleotides -> nucleotides
     stats->mismatch = source_init ( 5, 5, 1 );
+    // Quality: cigar -> ASCII
+    stats->quality = source_init ( 4, 128, 1 );
 
     return stats;
 }
@@ -34,7 +36,7 @@ static unsigned char __nucleotide ( char nucleotide ){
     return 4;
 }
 
-void stats_update ( unsigned char * align, int alg_len, char * read, char * ref, stats_t * stats ){
+void stats_update ( unsigned char * align, int alg_len, char * read, char * ref, unsigned char * quality, stats_t * stats ){
     // Pointers
     char * ptr_read = read;
     char * ptr_ref = ref;
@@ -60,6 +62,9 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
                 break;
             }
         }
+        if ( align[z] != 2 ){
+            source_update ( &align[z], 1, i-1, quality[i-1], stats->quality );
+        }
     }
 }
 
@@ -69,6 +74,7 @@ void stats_destroy ( stats_t * stats ) {
     // Free sources
     source_destroy ( stats->alignment ); 
     source_destroy ( stats->mismatch ); 
+    source_destroy ( stats->quality ); 
     // Free structure
     free ( stats );
 }
