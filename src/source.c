@@ -104,7 +104,7 @@ void source_learn_word ( unsigned char * w, int size, source_t * source ) {
 }
 
 void __normalize ( source_t * source ) {
-    double sum;
+    unsigned long sum;
 
     // Alloc matrix
     source->normalized = malloc ( sizeof ( double * ) * source->n );
@@ -122,7 +122,7 @@ void __normalize ( source_t * source ) {
                 if ( sum == 0 ) {
                     source->normalized[i][ j * source->omega + k ] = 0;
                 } else {
-                    source->normalized[i][ j * source->omega + k ] = source->raw[i][ j * source->omega + k ] / sum;
+                    source->normalized[i][ j * source->omega + k ] = ( double ) source->raw[i][ j * source->omega + k ] / sum;
                 }
             }
         }
