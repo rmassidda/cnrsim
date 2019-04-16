@@ -91,7 +91,7 @@ void stats_dump ( FILE * file, stats_t * stats ) {
     source_dump ( file, stats->mismatch );
     fprintf ( file, "//Quality score\n" );
     source_dump ( file, stats->quality );
-    fprintf ( file, "//Length\n" );
+    fprintf ( file, "//Distribution\n" );
     source_dump ( file, stats->distribution );
 }
 
