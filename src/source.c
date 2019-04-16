@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <time.h>
 #include <math.h>
 #include "source.h"
@@ -94,13 +95,12 @@ void source_learn_word ( unsigned char * w, int size, source_t * source ) {
     for ( i = 0; i < size; i ++ ) {
         // Length of the sample
         len = ( i < m ) ? i : m;
-        // Check for overflow
-        source_update ( &w[i - m], len, i, w[i], source );
+        source_update ( &w[i - len], len, i, w[i], source );
     }
 
     // Add terminal char
     len = ( i < m ) ? i : m;
-    source_update ( &w[i - m], len, i, source->omega - 1, source );
+    source_update ( &w[i - len], len, i, source->omega - 1, source );
 }
 
 void __normalize ( source_t * source ) {
