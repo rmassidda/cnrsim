@@ -305,9 +305,11 @@ int main ( int argc, char ** argv ) {
     // While there are sequences to read in the FASTA file
     while ( curr_seq != NULL ) {
         // Seek on the BAM
+        alias = NULL;
         if ( dictionary != NULL ) {
             alias = tr_translate ( alias_index, curr_seq->label );
-        } else {
+        }
+        if ( alias == NULL ){
             alias = curr_seq->label;
         }
         itr = bam_itr_querys ( index, hdr, alias );
@@ -397,6 +399,9 @@ int main ( int argc, char ** argv ) {
                     edlibFreeAlignResult ( edlib_alg[i] );
                 }
             }
+        }
+        else{
+            fprintf ( stderr, "%s not found.\n", curr_seq->label );
         }
         // Next sequence
         for ( int i = 0; i < ploidy; i ++ ) {
