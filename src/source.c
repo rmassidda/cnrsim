@@ -163,7 +163,7 @@ void source_dump ( FILE * file, source_t * source ) {
         fprintf ( file, "pos %d\n", i );
         for ( int j = 0; j < source->prefix; j ++ ) {
             for ( int z = 0; z < ( int ) source->omega; z ++ ) {
-                fprintf ( file, "%.2f ", source->normalized[i][j * source->omega + z] );
+                fprintf ( file, "%.5f ", source->normalized[i][j * source->omega + z] );
             }
             fprintf ( file, "\n" );
         }
