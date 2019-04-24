@@ -315,7 +315,17 @@ int main ( int argc, char ** argv ) {
         itr = bam_itr_querys ( index, hdr, alias );
         if ( itr != NULL ) {
             while ( bam_itr_next ( fp, itr, line ) > 0 ) {
-
+                // Paired end
+                if ( line->core.flag == 99 || line->core.flag == 163 ) {
+                    pair = 1;
+                } 
+                else if ( line->core.flag == 147 || line->core.flag == 83 ){
+                    pair = 0;
+                }
+                else{
+                    continue;
+                }
+                
                 // Read information
                 pos = line->core.pos;
                 len = line->core.l_qseq;
@@ -333,13 +343,6 @@ int main ( int argc, char ** argv ) {
                     read[i] = seq_nt16_str[ bam_seqi ( read_seq, i ) ];
                 }
                 read[i] = 0;
-
-                // Paired end
-                if ( line->core.flag & BAM_FREAD2 ) {
-                    pair = 1;
-                } else {
-                    pair = 0;
-                }
 
                 for ( i = 0; i < ploidy; i ++ ) {
                     curr_seq = seq[i];
@@ -375,6 +378,10 @@ int main ( int argc, char ** argv ) {
                         min_start = start + edlib_alg[i].startLocations[0];
                         min_score = edlib_alg[i].editDistance;
                     }
+
+                    // Note: edlib c(GAP) = c(MM)
+                    if ( ( line->core.flag == 147 || line->core.flag == 83 ) && edlib_alg[i].alignment[edlib_alg[i].alignmentLength-1] == 1 )
+                        edlib_alg[i].alignment[edlib_alg[i].alignmentLength-1] = 3;
 
                     if ( verbose ) {
                         dump_read (
