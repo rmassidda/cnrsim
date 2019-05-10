@@ -178,9 +178,11 @@ bool _vcf2wrapper ( wrapper_t * w ) {
     }
 
     w->pos = w->vcf_line->pos;
+    // Reference
     w->ref = w->vcf_line->d.allele[0];
-    // Even the reference is a possible alternative!
-    w->alt = w->vcf_line->d.allele;
+    // Alternative alleles
+    w->alt = &w->vcf_line->d.allele[1];
+
     // Allelic frequency as defined by VCF
     af_ret = bcf_get_info_float ( w->hdr, w->vcf_line, "AF", af, &af_size );
     // Allelic frequency as defined by dbSNP
@@ -202,7 +204,7 @@ bool _vcf2wrapper ( wrapper_t * w ) {
         threshold = 0;
         for ( int j = 0; j < w->vcf_line->n_allele; j++ ) {
             if ( threshold <= outcome && outcome < threshold + p[j] ) {
-                w->alt_index[i] = j;
+                w->alt_index[i] = j - 1;
                 break;
             } else {
                 threshold += p[j];

@@ -47,6 +47,7 @@ int main ( int argc, char ** argv ) {
     // Statistics
     bool stats = false;
     unsigned long int done = 0;
+    unsigned long int igno = 0;
     unsigned long int udv_collision = 0;
     unsigned long int vcf_collision = 0;
 
@@ -139,6 +140,12 @@ int main ( int argc, char ** argv ) {
                 if ( wr_update_wrapper ( w ) ) {
                     // Per allele
                     for ( int i = 0; i < ploidy; i++ ) {
+                        // Don't "apply" reference
+                        if ( w->alt_index[i] < 0 ) {
+                            igno ++;
+                            continue;
+                        }
+
                         // Gap between variations
                         gap = w->pos - allele[i]->ref;
 
@@ -204,10 +211,11 @@ int main ( int argc, char ** argv ) {
         seq = filemanager_next_seq ( fm, seq );
     }
     if ( stats ) {
-        unsigned long int sum = done + vcf_collision + udv_collision;
+        unsigned long int sum = done + igno + vcf_collision + udv_collision;
         printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
-        printf ( "UDVc:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
-        printf ( "VCFc:\t%lu\t%.2f\n", vcf_collision, vcf_collision * 100.0 / sum );
+        printf ( "REF:\t%lu\t%.2f\n", igno, igno * 100.0 / sum );
+        printf ( "UDVc:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / ( sum - igno ) );
+        printf ( "VCFc:\t%lu\t%.2f\n", vcf_collision, vcf_collision * 100.0 / ( sum - igno ) );
     }
 
     // Cleanup
