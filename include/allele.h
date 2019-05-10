@@ -17,7 +17,6 @@ struct allele_t {
     long int buffer_size; // size of the sequence
     long int pos; // current position
     long int ref; // corresponding reference position
-    long int max_ref; // limit of the area covered by variations
     long int alg; // corresponding alignment position
     long int off; // offset from reference position
 };
@@ -61,9 +60,6 @@ int allele_seek ( int position, allele_t * allele );
  * @param alt    alternative to be applied
  * @param allele pointer to the structure
  * @return       0  if the variation was correctly applied
- *               -1 if the reference don't with what's already in the allele
- *               -2 if the variation requires to move the allele content
- *               -3 if the variation requires to move the alignment string
  */
 int allele_variation ( char * ref, char * alt, allele_t * allele );
 

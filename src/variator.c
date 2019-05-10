@@ -39,6 +39,7 @@ int main ( int argc, char ** argv ) {
     wrapper_t * w;
     // Alleles
     allele_t ** allele;
+    int gap;
     // Output
     FILE ** output;
     FILE ** alignment;
@@ -46,10 +47,8 @@ int main ( int argc, char ** argv ) {
     // Statistics
     bool stats = false;
     unsigned long int done = 0;
-    unsigned long int igno_ref = 0;
-    unsigned long int igno_all = 0;
-    unsigned long int igno_alg = 0;
     unsigned long int udv_collision = 0;
+    unsigned long int vcf_collision = 0;
 
     while ( ( opt = getopt ( argc, argv, "sn:u:o:" ) ) != -1 ) {
         switch ( opt ) {
@@ -140,40 +139,43 @@ int main ( int argc, char ** argv ) {
                 if ( wr_update_wrapper ( w ) ) {
                     // Per allele
                     for ( int i = 0; i < ploidy; i++ ) {
+                        // Gap between variations
+                        gap = w->pos - allele[i]->ref;
+
+                        // Avoid collision
+                        if ( gap < 0 ){
+                            //  Keep track of the collision number
+                            if ( stats ){
+                                vcf_collision ++;
+                            }
+                            continue;
+                        }
+
                         // Distance between the reference and the variation pointers
-                        if ( w->pos > allele[i]->max_ref ) {
+                        if ( gap > 0 ) {
                             /*
                              * The variation starts far from the current
                              * reference position, what is in between can
                              * be copied without any mutation.
                              */
-                            allele_seek ( allele[i]->max_ref, allele[i] );
                             memcpy (
                                 &allele[i]->sequence[allele[i]->pos],
                                 &seq->sequence[allele[i]->ref],
-                                w->pos - allele[i]->max_ref
+                                gap
                             );
+                            // Update position
+                            allele[i]->pos += gap;
+                            allele[i]->alg += gap;
+                            allele[i]->ref += gap;
                         }
 
-                        // Updates the allele position
-                        allele_seek ( w->pos, allele[i] );
-
                         // Alternative
-                        int check = allele_variation (
+                        allele_variation (
                                         w->ref,
                                         w->alt[w->alt_index[i]],
                                         allele[i] );
-                        if ( stats ) {
-                            if ( check == 0 ) {
-                                done ++;
-                            } else if ( check == -1 ) {
-                                igno_ref ++;
-                            } else if ( check == -2 ) {
-                                igno_all ++;
-                            } else {
-                                igno_alg ++;
-                            }
-                        }
+
+                        done ++;
                     }
                 } else if ( stats ) {
                     udv_collision++;
@@ -182,13 +184,11 @@ int main ( int argc, char ** argv ) {
         }
         // Copy of the remaining part of the sequence
         for ( int i = 0; i < ploidy; i++ ) {
-            allele_seek ( allele[i]->max_ref, allele[i] );
             allele_variation (
-                &seq->sequence[allele[i]->max_ref],
-                &seq->sequence[allele[i]->max_ref],
+                &seq->sequence[allele[i]->ref],
+                &seq->sequence[allele[i]->ref],
                 allele[i]
             );
-            allele_seek ( allele[i]->max_ref, allele[i] );
             // End of the sequence
             allele[i]->sequence[allele[i]->pos] = '\0';
             allele[i]->alignment[allele[i]->alg] = '\0';
@@ -204,12 +204,10 @@ int main ( int argc, char ** argv ) {
         seq = filemanager_next_seq ( fm, seq );
     }
     if ( stats ) {
-        unsigned long int sum = done + igno_ref + igno_all + igno_alg + udv_collision;
+        unsigned long int sum = done + vcf_collision + udv_collision;
         printf ( "DONE:\t%lu\t%.2f\n", done, done * 100.0 / sum );
-        printf ( "REF:\t%lu\t%.2f\n", igno_ref, igno_ref * 100.0 / sum );
-        printf ( "ALL:\t%lu\t%.2f\n", igno_all, igno_all * 100.0 / sum );
-        printf ( "ALG:\t%lu\t%.2f\n", igno_alg, igno_alg * 100.0 / sum );
-        printf ( "UDVC:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
+        printf ( "UDVc:\t%lu\t%.2f\n", udv_collision, udv_collision * 100.0 / sum );
+        printf ( "VCFc:\t%lu\t%.2f\n", vcf_collision, vcf_collision * 100.0 / sum );
     }
 
     // Cleanup

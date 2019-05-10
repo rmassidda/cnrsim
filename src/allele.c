@@ -29,7 +29,6 @@ allele_t * allele_init ( long int size, allele_t * allele ) {
     allele->pos = 0;
     allele->off = 0;
     allele->ref = 0;
-    allele->max_ref = 0;
     allele->alg = 0;
     return allele;
 }
@@ -81,39 +80,10 @@ int allele_seek ( int position, allele_t * allele ) {
 int allele_variation ( char * ref, char * alt, allele_t * allele ) {
     int ref_len = strlen ( ref );
     int alt_len = strlen ( alt );
-    char * all = &allele->sequence[allele->pos];
-    int all_len = strlen ( all );
     int offset = ref_len - alt_len;
     int min = ( offset < 0 ) ? ref_len : alt_len;
     int max = ( offset < 0 ) ? alt_len : ref_len;
     char c = ( offset < 0 ) ? 'I' : 'D';
-
-    // Variation coerency check
-    if ( all_len <= ref_len ) {
-        if ( strncmp ( all, ref, all_len ) != 0 ) {
-            return -1;
-        }
-    } else {
-        if ( strncmp ( all, ref, ref_len ) != 0 ) {
-            return -1;
-        }
-        // Avoid INDEL inside the allele
-        else if ( alt_len != ref_len ) {
-            return -2;
-        }
-    }
-
-    // Check if the position stil exists
-    for ( int i = 0; i < max; i ++ ) {
-        if ( allele->alignment[allele->alg + i] == 'D' ) {
-            return -3;
-        }
-    }
-
-    // Update reference limit
-    if ( allele->ref + ref_len > allele->max_ref ) {
-        allele->max_ref = allele->ref + ref_len;
-    }
 
     // Application
     memcpy (
@@ -121,13 +91,8 @@ int allele_variation ( char * ref, char * alt, allele_t * allele ) {
         alt,
         alt_len
     );
-    if ( alt_len < ref_len ) {
-        memset (
-            &allele->sequence[allele->pos + alt_len],
-            '\0',
-            ref_len - alt_len
-        );
-    }
+
+    // Alignment
     for ( int i = 0; i < min; i ++ ) {
         if ( alt[i] == ref[i] ) {
             allele->alignment[allele->alg + i] = '=';
@@ -140,6 +105,12 @@ int allele_variation ( char * ref, char * alt, allele_t * allele ) {
         c,
         abs ( offset )
     );
+
+    //  Update index
+    allele->ref += ref_len;
+    allele->pos += alt_len;
+    allele->alg += max;
+
     return 0;
 }
 
