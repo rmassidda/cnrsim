@@ -14,10 +14,14 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <libgen.h>
-#include "fileManager.h"
+#include <zlib.h>
+#include <htslib/kseq.h>
 #include "allele.h"
 #include "parse_frequency.h"
 #include "wrapper.h"
+
+// Init kseq structure
+KSEQ_INIT ( gzFile, gzread );
 
 void usage ( char * name ) {
     fprintf ( stderr, "Usage: %s [-n number of alleles] [-u udv_file] [-o output_name] fasta_file vcf_file\n", name );
@@ -33,8 +37,8 @@ int main ( int argc, char ** argv ) {
     char * vcf_fn = NULL;
     char * out_fn = NULL;
     // FASTA
-    struct filemanager * fm;
-    struct sequence_t * seq;
+    gzFile fp;
+    kseq_t * seq;
     // Wrapper
     wrapper_t * w;
     // Alleles
@@ -42,7 +46,6 @@ int main ( int argc, char ** argv ) {
     int gap;
     // Output
     FILE ** output;
-    FILE ** alignment;
     char * str;
     // Statistics
     bool stats = false;
@@ -89,17 +92,18 @@ int main ( int argc, char ** argv ) {
     // Allocate
     allele = malloc ( sizeof ( allele_t * ) * ploidy );
     output = malloc ( sizeof ( FILE * ) * ploidy );
-    alignment = malloc ( sizeof ( FILE * ) * ploidy );
 
 
     // Initialize wrapper
     w = wr_init ( vcf_fn, udv_fn, ploidy );
 
     // FASTA file
-    fm = filemanager_init ( fasta_fn );
-    if ( fm == NULL ) {
+    fp = gzopen ( fasta_fn, "r" );
+    if ( fp == NULL ) {
+        fprintf ( stderr, "File %s not found.\n", fasta_fn );
         exit ( EXIT_FAILURE );
     }
+    seq = kseq_init ( fp );
 
     /*
      * Output files, one per allele
@@ -111,30 +115,26 @@ int main ( int argc, char ** argv ) {
     }
     str = malloc ( sizeof ( char ) * ( strlen ( out_fn ) + 20 ) );
     for ( int i = 0; i < ploidy; i++ ) {
-        sprintf ( str, "%s_%d.fa", out_fn, i );
+        sprintf ( str, "%s_%d.fq", out_fn, i );
         output[i] = fopen ( str, "w+" );
-        sprintf ( str, "%s_%d.fa.alg", out_fn, i );
-        alignment[i] = fopen ( str, "w+" );
     }
 
-    // Load of the first sequence
-    seq = filemanager_next_seq ( fm, NULL );
     // Initialize alleles
     for ( int i = 0; i < ploidy; i++ ) {
         allele[i] = allele_init ( 0, NULL );
     }
 
     // While there are sequences to read in the FASTA file
-    while ( seq != NULL ) {
+    while ( kseq_read ( seq ) >= 0 ) {
         // Resize allele
         for ( int i = 0; i < ploidy; i++ ) {
-            allele[i] = allele_init ( seq->sequence_size, allele[i] );
+            allele[i] = allele_init ( seq->seq.l, allele[i] );
         }
         // Label separated by white space
         if ( stats )
-            printf ( "%s\n", seq->label );
+            printf ( "%s\n", seq->name.s );
         // Seek to the desired region
-        if ( wr_seek ( w, seq->label ) ) {
+        if ( wr_seek ( w, seq->name.s ) ) {
             // Up to the end of the region
             while ( wr_region ( w ) ) {
                 if ( wr_update_wrapper ( w ) ) {
@@ -167,7 +167,7 @@ int main ( int argc, char ** argv ) {
                              */
                             memcpy (
                                 &allele[i]->sequence[allele[i]->pos],
-                                &seq->sequence[allele[i]->ref],
+                                &seq->seq.s[allele[i]->ref],
                                 gap
                             );
                             // Update position
@@ -192,23 +192,20 @@ int main ( int argc, char ** argv ) {
         // Copy of the remaining part of the sequence
         for ( int i = 0; i < ploidy; i++ ) {
             allele_variation (
-                &seq->sequence[allele[i]->ref],
-                &seq->sequence[allele[i]->ref],
+                &seq->seq.s[allele[i]->ref],
+                &seq->seq.s[allele[i]->ref],
                 allele[i]
             );
             // End of the sequence
             allele[i]->sequence[allele[i]->pos] = '\0';
-            allele[i]->alignment[allele[i]->alg] = '\0';
         }
         // Write of the sequence on file
         for ( int i = 0; i < ploidy; i++ ) {
-            fprintf ( output[i], ">%s\n", seq->label );
+            fprintf ( output[i], ">%s\n", seq->name.s );
             fprintf ( output[i], "%s\n", allele[i]->sequence );
-            fprintf ( alignment[i], ">%s\n", seq->label );
-            fprintf ( alignment[i], "%s\n", allele[i]->alignment );
+            fprintf ( output[i], "+\n" );
+            fprintf ( output[i], "%s\n", allele[i]->alignment );
         }
-        // Next sequence
-        seq = filemanager_next_seq ( fm, seq );
     }
     if ( stats ) {
         unsigned long int sum = done + igno + vcf_collision + udv_collision;
@@ -222,13 +219,12 @@ int main ( int argc, char ** argv ) {
     for ( int i = 0; i < ploidy; i++ ) {
         allele_destroy ( allele[i] );
         fclose ( output[i] );
-        fclose ( alignment[i] );
     }
     free ( allele );
     free ( output );
-    free ( alignment );
     free ( str );
+    kseq_destroy ( seq );
+    gzclose ( fp );
     wr_destroy ( w );
-    filemanager_destroy ( fm );
     exit ( EXIT_SUCCESS );
 }
