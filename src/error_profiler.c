@@ -9,16 +9,20 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <htslib/sam.h>
 #include <edlib.h>
 #include <math.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <assert.h>
+#include <zlib.h>
+#include <htslib/sam.h>
+#include <htslib/kseq.h>
 #include "allele.h"
-#include "fileManager.h"
 #include "stats.h"
 #include "translate_notation.h"
+
+// Init kseq structure
+KSEQ_INIT ( gzFile, gzread );
 
 void usage ( char * name ) {
     fprintf ( stderr, "Usage: %s [-d dictionary] [-a] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
@@ -151,18 +155,17 @@ int main ( int argc, char ** argv ) {
     // Parser
     int opt;
     char * dictionary = NULL;
-    bool alternative = false;
     char * bam_fn;
-    char * fasta_fn = NULL;
     bool verbose = false;
     bool silent = false;
     int ploidy;
     // FASTA
-    struct filemanager ** fm;
-    struct sequence_t ** seq;
+    gzFile * fasta;
+    kseq_t ** seq;
+    kseq_t * curr_seq;
+    char * align;
     allele_t ** allele;
-    // Pointers
-    struct sequence_t * curr_seq;
+    bool last = false;
     // BAM
     htsFile * fp;
     bam_hdr_t * hdr;
@@ -175,6 +178,12 @@ int main ( int argc, char ** argv ) {
     // Aligner
     EdlibAlignResult  * edlib_alg;
     EdlibAlignConfig config;
+    EdlibEqualityPair additionalEqualities[4] = {
+        {'A', 'a'},
+        {'C', 'c'},
+        {'G', 'g'},
+        {'T', 't'}
+    };
     char * read = NULL;
     int pos;
     int len;
@@ -188,8 +197,9 @@ int main ( int argc, char ** argv ) {
     int min_score;
     int min_start = 0;
     int min_index = 0;
+    int winner[1024];
 
-    while ( ( opt = getopt ( argc, argv, "svd:a" ) ) != -1 ) {
+    while ( ( opt = getopt ( argc, argv, "svd:" ) ) != -1 ) {
         switch ( opt ) {
         case 's':
             silent = true;
@@ -199,9 +209,6 @@ int main ( int argc, char ** argv ) {
             break;
         case 'd':
             dictionary = optarg;
-            break;
-        case 'a':
-            alternative = true;
             break;
         case '?':
             if ( optopt == 'd' )
@@ -246,71 +253,67 @@ int main ( int argc, char ** argv ) {
     }
 
     // FASTA files
-    ploidy = alternative ? ( argc - optind ) : 1;
+    ploidy = argc - optind;
 
     // Malloc of the structures
-    fm = malloc ( sizeof ( struct filemanager_t * ) * 2 * ploidy );
-    seq = malloc ( sizeof ( struct sequence_t * ) * 2 * ploidy );
+    fasta = malloc ( sizeof ( gzFile ) * ploidy );
+    seq = malloc ( sizeof ( kseq_t * ) * ploidy );
     allele = malloc ( sizeof ( struct allele_t * ) * ploidy );
     edlib_alg = malloc ( sizeof ( EdlibAlignResult ) * ploidy );
 
-    // First read of all the sequences
+    // Init sequences
     for ( int i = 0; i < ploidy; i ++ ) {
         // Read of the allele
-        fm[i] = filemanager_init ( argv[optind] );
-        if ( fm[i] == NULL ) {
+        fasta[i] = gzopen ( argv[optind], "r" );
+        if ( fasta[i] == NULL ) {
+            fprintf ( stderr, "File %s not found.\n", argv[optind] );
             exit ( EXIT_FAILURE );
         }
-        seq[i] = filemanager_next_seq ( fm[i], NULL );
-        if ( seq[i] == NULL ) {
-            exit ( EXIT_FAILURE );
-        }
-        // Alignment of the allele
-        char * align_string = NULL;
-        if ( i != 0 ) {
-            int j = i + ploidy - 1;
-            // Name of the alignment file
-            fasta_fn = realloc ( fasta_fn, sizeof ( char ) * ( strlen ( argv[optind] ) + 5 ) );
-            strcpy ( fasta_fn, argv[optind] );
-            strcat ( fasta_fn, ".alg" );
-            // Read of the alignment
-            fm [j] = filemanager_init ( fasta_fn );
-            if ( fm[j] == NULL ) {
-                exit ( EXIT_FAILURE );
-            }
-            seq [j] = filemanager_next_seq ( fm[j], NULL );
-            if ( seq [j] == NULL ) {
-                exit ( EXIT_FAILURE );
-            }
-            align_string = seq[j]->sequence;
-        }
-        // Allele creation
-        allele[i] = allele_point (
-                        seq[i]->sequence_size,
-                        seq[i]->sequence,
-                        align_string,
-                        NULL
-                    );
+        seq[i] = kseq_init ( fasta[i] );
+        allele[i] = NULL;
         optind ++;
     }
-    curr_seq = seq[0];
-
-    free ( fasta_fn );
 
     // Edlib configuration
-    config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, NULL, 0 );
+    config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
     stats[0] = stats_init ();
     stats[1] = stats_init ();
 
     // While there are sequences to read in the FASTA file
-    while ( curr_seq != NULL ) {
+    while ( ! last ) {
+        // Next sequence
+        for ( int i = 0; i < ploidy; i ++ ) {
+            int x = kseq_read ( seq[i] );
+            if ( x >= 0 || x == -2 ) {
+                printf ( "%d\t%s\n", i, seq[i]->name.s );
+                // Alignment of the sequence
+                if ( seq[i]->qual.l > 0 ){
+                    align = seq[i]->qual.s;
+                }
+                else{
+                    align = NULL;
+                }
+                // Update allele
+                allele[i] = allele_point (
+                        seq[i]->seq.l,
+                        seq[i]->seq.s,
+                        align,                        
+                        allele[i]
+                        );
+            }
+            else{
+                last = true;
+            }
+        }
+        
+        if ( last ) { break; }
         // Seek on the BAM
         alias = NULL;
         if ( dictionary != NULL ) {
-            alias = tr_translate ( alias_index, curr_seq->label );
+            alias = tr_translate ( alias_index, (*seq)->name.s );
         }
         if ( alias == NULL ){
-            alias = curr_seq->label;
+            alias = (*seq)->name.s;
         }
         itr = bam_itr_querys ( index, hdr, alias );
         if ( itr != NULL ) {
@@ -358,8 +361,8 @@ int main ( int argc, char ** argv ) {
                     }
 
                     end = allele[i]->pos + len;
-                    if ( end + flank_2 >= curr_seq->sequence_size ) {
-                        end = curr_seq->sequence_size - 1;
+                    if ( end + flank_2 >= curr_seq->seq.l ) {
+                        end = curr_seq->seq.l - 1;
                     } else {
                         end += flank_2;
                     }
@@ -368,7 +371,7 @@ int main ( int argc, char ** argv ) {
                     edlib_alg[i] = edlibAlign (
                                        read,
                                        len,
-                                       &curr_seq->sequence[start],
+                                       &curr_seq->seq.s[start],
                                        end - start,
                                        config );
 
@@ -384,8 +387,9 @@ int main ( int argc, char ** argv ) {
                         edlib_alg[i].alignment[edlib_alg[i].alignmentLength-1] = 3;
 
                     if ( verbose ) {
+                        printf ( "Sequence no.%d %d->%ld\n", i, pos, allele[i]->pos );
                         dump_read (
-                            &curr_seq->sequence[start + edlib_alg[i].startLocations[0]],
+                            &curr_seq->seq.s[start + edlib_alg[i].startLocations[0]],
                             edlib_alg[i].alignment,
                             edlib_alg[i].alignmentLength,
                             read,
@@ -408,30 +412,8 @@ int main ( int argc, char ** argv ) {
             }
         }
         else{
-            fprintf ( stderr, "%s not found.\n", curr_seq->label );
+            fprintf ( stderr, "%s not found.\n", (*seq)->name.s );
         }
-        // Next sequence
-        for ( int i = 0; i < ploidy; i ++ ) {
-            seq[i] = filemanager_next_seq ( fm[i], seq[i] );
-            char * align_string = NULL;
-            if ( i != 0 ) {
-                int j = i + ploidy - 1;
-                seq[j] = filemanager_next_seq ( fm[j], seq[j] );
-                if ( seq[j] != NULL ) {
-                    align_string = seq[j]->sequence;
-                }
-            }
-            if ( seq[i] != NULL ) {
-                // Update allele
-                allele[i] = allele_point (
-                                seq[i]->sequence_size,
-                                seq[i]->sequence,
-                                align_string,
-                                allele[i]
-                            );
-            }
-        }
-        curr_seq = seq[0];
     }
 
     // Dump statistics
@@ -442,14 +424,11 @@ int main ( int argc, char ** argv ) {
 
     // Cleanup
     for ( int i = 0; i < ploidy; i ++ ) {
-        filemanager_destroy ( fm[i] );
+        gzclose ( fasta[i] );
+        kseq_destroy( seq[i] );
         free ( allele[i] );
-        if ( i != 0 ) {
-            int j = i + ploidy - 1;
-            filemanager_destroy ( fm [j] );
-        }
     }
-    free ( fm );
+    free ( fasta );
     free ( seq );
     free ( allele );
     free ( edlib_alg );
