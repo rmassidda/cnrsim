@@ -197,7 +197,6 @@ int main ( int argc, char ** argv ) {
     int min_score;
     int min_start = 0;
     int min_index = 0;
-    int winner[1024];
 
     while ( ( opt = getopt ( argc, argv, "svd:" ) ) != -1 ) {
         switch ( opt ) {
