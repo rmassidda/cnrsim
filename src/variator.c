@@ -168,7 +168,12 @@ int main ( int argc, char ** argv ) {
                             memcpy (
                                 &allele[i]->sequence[allele[i]->pos],
                                 &seq->seq.s[allele[i]->ref],
-                                gap
+                                sizeof ( char ) * gap
+                            );
+                            memset ( 
+                                &allele[i]->alignment[allele[i]->alg],
+                                '=',
+                                sizeof ( char ) * gap
                             );
                             // Update position
                             allele[i]->pos += gap;
@@ -198,6 +203,7 @@ int main ( int argc, char ** argv ) {
             );
             // End of the sequence
             allele[i]->sequence[allele[i]->pos] = '\0';
+            allele[i]->alignment[allele[i]->alg] = '\0';
         }
         // Write of the sequence on file
         for ( int i = 0; i < ploidy; i++ ) {
