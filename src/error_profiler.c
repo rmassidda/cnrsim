@@ -25,7 +25,7 @@
 KSEQ_INIT ( gzFile, gzread );
 
 void usage ( char * name ) {
-    fprintf ( stderr, "Usage: %s [-d dictionary] [-a] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
+    fprintf ( stderr, "Usage: %s [-d dictionary] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
 }
 
 void stats_test ( stats_t * stats ) {
@@ -284,7 +284,6 @@ int main ( int argc, char ** argv ) {
         for ( int i = 0; i < ploidy; i ++ ) {
             int x = kseq_read ( seq[i] );
             if ( x >= 0 || x == -2 ) {
-                printf ( "%d\t%s\n", i, seq[i]->name.s );
                 // Alignment of the sequence
                 if ( seq[i]->qual.l > 0 ){
                     align = seq[i]->qual.s;
