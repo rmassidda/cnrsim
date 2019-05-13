@@ -193,6 +193,8 @@ int main ( int argc, char ** argv ) {
     int end;
     // Statistics
     stats_t * stats[2];
+    double insert_size = 0;
+    int read_number = 0;
     int pair;
     int min_score;
     int min_start = 0;
@@ -326,13 +328,19 @@ int main ( int argc, char ** argv ) {
                 else{
                     continue;
                 }
-                
+
                 // Read information
                 pos = line->core.pos;
                 len = line->core.l_qseq;
                 uint8_t * read_seq = bam_get_seq ( line ); // Read nucleotides
                 uint8_t * qual = bam_get_qual ( line ); // Quality score
 
+                // Insert size
+                if ( line->core.tid == line->core.mtid && line->core.mpos > pos ){
+                    insert_size += ( line->core.mpos - pos - len );
+                    read_number ++;
+                }
+                
                 // Interval of the reference
                 flank_1 = floor ( log ( 2 * len ) / log ( 2 ) );
                 flank_2 = flank_1;
@@ -418,6 +426,8 @@ int main ( int argc, char ** argv ) {
     if ( !silent ) {
         stats_dump ( stdout, stats[0] );
         stats_dump ( stdout, stats[1] );
+        printf ( "@insertsize\n");
+        printf ( "%.5f\n", (insert_size/(double)read_number) );
     }
 
     // Cleanup
