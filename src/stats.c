@@ -79,19 +79,19 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
         }
         if ( align[z] != 2 ) {
             source_update ( &align[z], 1, i - 1, quality[i - 1], stats->quality );
-            source_update ( NULL, 0, i - 1, align[z], stats->distribution );
         }
+        source_update ( NULL, 0, i - 1, align[z], stats->distribution );
     }
 }
 
 void stats_dump ( FILE * file, stats_t * stats ) {
-    fprintf ( file, "//Alignment prefix %d\n", stats->alignment->m );
+    fprintf ( file, "@alignment (ACGTN)^%d\n", stats->alignment->m );
     source_dump ( file, stats->alignment );
-    fprintf ( file, "//Mismatch\n" );
+    fprintf ( file, "@mismatch (ACGTN)\n" );
     source_dump ( file, stats->mismatch );
-    fprintf ( file, "//Quality score\n" );
+    fprintf ( file, "@quality (ASCII)\n" );
     source_dump ( file, stats->quality );
-    fprintf ( file, "//Distribution\n" );
+    fprintf ( file, "@distribution (=DIX)\n" );
     source_dump ( file, stats->distribution );
 }
 
