@@ -91,7 +91,7 @@ int main ( int argc, char ** argv ) {
 
     // Allocate
     allele = malloc ( sizeof ( allele_t * ) * ploidy );
-    output = malloc ( sizeof ( FILE * ) * ploidy );
+    output = malloc ( sizeof ( FILE * ) * 2 * ploidy );
 
 
     // Initialize wrapper
@@ -117,6 +117,10 @@ int main ( int argc, char ** argv ) {
     for ( int i = 0; i < ploidy; i++ ) {
         sprintf ( str, "%s_%d.fq", out_fn, i );
         output[i] = fopen ( str, "w+" );
+    }
+    for ( int i = 0; i < ploidy; i++ ) {
+        sprintf ( str, "%s_%d.fa", out_fn, i );
+        output[i+ploidy] = fopen ( str, "w+" );
     }
 
     // Initialize alleles
@@ -212,6 +216,10 @@ int main ( int argc, char ** argv ) {
             fprintf ( output[i], "+\n" );
             fprintf ( output[i], "%s\n", allele[i]->alignment );
         }
+        for ( int i = 0; i < ploidy; i++ ) {
+            fprintf ( output[i+ploidy], ">%s\n", seq->name.s );
+            fprintf ( output[i+ploidy], "%s\n", allele[i]->sequence );
+        }
     }
     if ( stats ) {
         unsigned long int sum = done + igno + vcf_collision + udv_collision;
@@ -224,6 +232,8 @@ int main ( int argc, char ** argv ) {
     // Cleanup
     for ( int i = 0; i < ploidy; i++ ) {
         allele_destroy ( allele[i] );
+    }
+    for ( int i = 0; i < ( 2 * ploidy ); i++ ) {
         fclose ( output[i] );
     }
     free ( allele );
