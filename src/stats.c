@@ -120,31 +120,32 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
    
     // Read
     for ( int z = 0; z < read->alg_len; z ++ ) {
+        // Minimum position
         pos = ( i < stats->quality->n ) ? i : stats->quality->n - 1;
+        pos = ( pos < stats->mismatch->n ) ? pos : stats->mismatch->n - 1;
         if ( read->align[z] != 2 ) {
-            read->quality[i] = source_generate ( &read->align[z], 1, pos, stats->quality ) + 33;
+            read->quality[pos] = source_generate ( &read->align[z], 1, pos, stats->quality ) + 33;
         }
         switch ( read->align[z] ) {
         case 0:
-            read->read[i] = *ref;
+            read->read[pos] = *ref;
             i++;
             ref ++;
             break;
         case 1:
-            read->read[i] = 'I';
+            read->read[pos] = 'I';
             i++;
             break;
         case 2:
             ref ++;
             break;
-        case 3: {
+        case 3:
             in = __nucleotide ( *ref );
             out = source_generate ( &in, 1, pos, stats->mismatch );
-            read->read[i] = __nucleotide_rev ( out );
+            read->read[pos] = __nucleotide_rev ( out );
             i++;
             ref++;
             break;
-        }
         }
         // Reference ended
         if ( *ref == '\0' ){
@@ -154,8 +155,10 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
     }
 
     // Terminal
-    read->read[i] = '\0';
-    read->quality[i] = '\0';
+    pos = ( i < stats->quality->n ) ? i : stats->quality->n - 1;
+    pos = ( pos < stats->mismatch->n ) ? pos : stats->mismatch->n - 1;
+    read->read[pos] = '\0';
+    read->quality[pos] = '\0';
 
     return read;
 }

@@ -391,10 +391,10 @@ int main ( int argc, char ** argv ) {
 
     // Dump statistics
     if ( !silent ) {
+        printf ( "#single 0\n" );
         stats_dump ( stdout, stats[0] );
+        printf ( "#pair %d\n", (int)(insert_size/(double)read_number) );
         stats_dump ( stdout, stats[1] );
-        printf ( "@insertsize\n");
-        printf ( "%.5f\n", (insert_size/(double)read_number) );
     }
 
     // Cleanup

@@ -28,7 +28,7 @@ int main ( int argc, char ** argv ) {
     ssize_t read = 0;
     char * line = NULL;
     int n_line = 0;
-    int status = -1;
+    int insert_size = 0;
     double w;
     stats_t * curr_end = NULL;
     source_t * curr_source = NULL;
@@ -68,24 +68,42 @@ int main ( int argc, char ** argv ) {
     curr_end = single;
     while ( ( read = getline ( &line, &len, model ) ) != -1 ) {
         // Remove new line
-        if ( line[read - 1] == '\n' ) {
-            line[read - 1] = '\0';
-            read--;
+        line[read - 1] = '\0';
+        // Parse first token
+        token = strtok ( line, " " );    
+
+        // Start of new stats
+        if ( token[0] == '#' ){
+            // Read end
+            if ( strcmp ( token, "#single" ) == 0 ){
+                curr_end = single;
+            }
+            else if ( strcmp ( token, "#pair" ) == 0 ){
+                curr_end = pair;
+            }
+            // Insert size
+            token = strtok ( NULL, " " );    
+            insert_size = atoi ( token );
         }
-        // Start of new source
-        if ( line[0] == '@' ){
+        else if ( token[0] == '@' ){
             // Update parse status
-            status ++;
-            switch ( status ) {
-                case 0: curr_source = curr_end->alignment; break;
-                case 1: curr_source = curr_end->mismatch; break;
-                case 2: curr_source = curr_end->quality; break;
-                case 3: curr_source = curr_end->distribution; break;
-                case 4: curr_end = pair; curr_source = curr_end->alignment; status = 0; break;
-                default: fprintf ( stderr, "Unexpected source\n" ); exit ( EXIT_FAILURE );
+            if ( strcmp ( token, "@alignment" ) == 0 ) {
+                curr_source = curr_end->alignment;
+            }
+            else if ( strcmp ( token, "@mismatch" ) == 0 ){
+                curr_source = curr_end->mismatch;
+            }
+            else if ( strcmp ( token, "@quality" ) == 0 ){
+                curr_source = curr_end->quality;
+            }
+            else if ( strcmp ( token, "@distribution" ) == 0 ){
+                curr_source = curr_end->distribution;
+            }
+            else{
+                printf ( "%s, not parsable.\n", token );
+                exit ( EXIT_FAILURE );
             }
             // Get length
-            token = strtok ( line, " " );    
             token = strtok ( NULL, " " );    
             curr_source->n = atoi ( token );
             // Allocate matrix
@@ -101,7 +119,6 @@ int main ( int argc, char ** argv ) {
         }
         // Load data
         else{
-            token = strtok ( line, " " );    
             w = atof ( token );
             for ( int i = 0; i < curr_source->prefix; i ++ ) {
                 for ( int j = 0; j < curr_source->omega; j ++ ) {
@@ -143,6 +160,16 @@ int main ( int argc, char ** argv ) {
                     printf ( "+\n" );
                     printf ( "%s\n\n", generated->quality );
                 }
+                // Generate pair
+                if ( j + insert_size < seq[i]->seq.l ){
+                    generated = stats_generate_read ( &seq[i]->seq.s[j+insert_size], generated, pair );
+                    if ( ! generated->cut ){
+                        printf ( ">%s %d\n", seq[i]->name.s, j + insert_size );
+                        printf ( "%s\n", generated->read );
+                        printf ( "+\n" );
+                        printf ( "%s\n\n", generated->quality );
+                    }
+                }
             }
         }
     }
@@ -153,6 +180,9 @@ int main ( int argc, char ** argv ) {
         kseq_destroy ( seq[i] );
     }
     fclose ( model );
+    free ( generated->read );
+    free ( generated->align );
+    free ( generated->quality );
     free ( generated );
     free ( fp );
     free ( seq );
