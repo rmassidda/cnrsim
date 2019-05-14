@@ -154,6 +154,30 @@ unsigned char source_generate ( unsigned char * in, int len, int pos, source_t *
     return 0;
 }
 
+unsigned char * source_generate_word ( unsigned char * w, int * size, source_t * source ) {
+    int m = source->m;
+    int len;
+    int i;
+    
+    if ( w == NULL ){
+        w = malloc ( sizeof ( unsigned char ) * source->n );
+    }
+
+    *size = source->n;
+
+    for ( i = 0; i < *size; i ++ ){
+        // Length of the sample
+        len = ( i < m ) ? i : m;
+        w[i] = source_generate ( &w[i - len], len, i, source );
+        if ( w[i] == source->omega - 1 ){
+            *size = i+1;
+            return w;
+        }
+    }
+
+    return w;
+}
+
 void source_dump ( FILE * file, source_t * source ) {
     if ( source->normalized == NULL ) {
         __normalize ( source );

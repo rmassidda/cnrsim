@@ -65,6 +65,16 @@ void source_learn_word ( unsigned char * w, int size, source_t * source );
 unsigned char source_generate ( unsigned char * in, int len, int pos, source_t * source );
 
 /*
+ * Generates a word
+ *
+ * @param       w       pointer to the string or NULL
+ * @param       size    size of the string
+ * @param       source  source to be used
+ * @returns     word generated
+ */
+unsigned char * source_generate_word ( unsigned char * w, int * size, source_t * source );
+
+/*
  * Dumps the content of a source to a file
  *
  * @param       file    pointer to the file
