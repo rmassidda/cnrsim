@@ -85,13 +85,13 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
 }
 
 void stats_dump ( FILE * file, stats_t * stats ) {
-    fprintf ( file, "@alignment (ACGTN)^%d\n", stats->alignment->m );
+    fprintf ( file, "@alignment %d\n", stats->alignment->n );
     source_dump ( file, stats->alignment );
-    fprintf ( file, "@mismatch (ACGTN)\n" );
+    fprintf ( file, "@mismatch %d\n", stats->mismatch->n );
     source_dump ( file, stats->mismatch );
-    fprintf ( file, "@quality (ASCII)\n" );
+    fprintf ( file, "@quality %d\n", stats->quality->n );
     source_dump ( file, stats->quality );
-    fprintf ( file, "@distribution (=DIX)\n" );
+    fprintf ( file, "@distribution %d\n", stats->distribution->n );
     source_dump ( file, stats->distribution );
 }
 
