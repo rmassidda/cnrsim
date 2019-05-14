@@ -160,7 +160,6 @@ void source_dump ( FILE * file, source_t * source ) {
     }
 
     for ( int i = 0; i < source->n; i ++ ) {
-        fprintf ( file, "%d ", i );
         for ( int j = 0; j < source->prefix; j ++ ) {
             for ( int z = 0; z < ( int ) source->omega; z ++ ) {
                 fprintf ( file, "%.5f ", source->normalized[i][j * source->omega + z] );
