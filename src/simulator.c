@@ -41,6 +41,7 @@ int main ( int argc, char ** argv ) {
     FILE * model;
     stats_t * single;
     stats_t * pair;
+    read_t * generated = NULL;
     // FASTA
     gzFile * fp;
     kseq_t ** seq;
@@ -135,6 +136,13 @@ int main ( int argc, char ** argv ) {
     for ( int i = 0; i < ploidy; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
             for ( int j = 0; j < seq[i]->seq.l; j ++ ){
+                generated = stats_generate_read ( &seq[i]->seq.s[j], generated, single );
+                if ( ! generated->cut ){
+                    printf ( ">%s %d\n", seq[i]->name.s, j );
+                    printf ( "%s\n", generated->read );
+                    printf ( "+\n" );
+                    printf ( "%s\n\n", generated->quality );
+                }
             }
         }
     }
@@ -145,6 +153,7 @@ int main ( int argc, char ** argv ) {
         kseq_destroy ( seq[i] );
     }
     fclose ( model );
+    free ( generated );
     free ( fp );
     free ( seq );
     free ( line );

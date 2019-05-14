@@ -8,6 +8,7 @@
  */
 
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 #include "stats.h"
 
@@ -29,6 +30,7 @@ stats_t * stats_init ( ) {
 }
 
 static unsigned char __nucleotide ( char nucleotide ) {
+    nucleotide = toupper ( nucleotide );
     switch ( nucleotide ) {
     case 'A':
         return 0;
@@ -40,6 +42,20 @@ static unsigned char __nucleotide ( char nucleotide ) {
         return 3;
     }
     return 4;
+}
+
+static char __nucleotide_rev ( unsigned char nucleotide ) {
+    switch ( nucleotide ) {
+    case 0:
+        return 'A';
+    case 1:
+        return 'C';
+    case 2:
+        return 'G';
+    case 3:
+        return 'T';
+    }
+    return 'N';
 }
 
 void stats_update ( unsigned char * align, int alg_len, char * read, char * ref, unsigned char * quality, stats_t * stats ) {
@@ -83,6 +99,67 @@ void stats_update ( unsigned char * align, int alg_len, char * read, char * ref,
         source_update ( NULL, 0, i - 1, align[z], stats->distribution );
     }
 }
+
+read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
+    int i = 0;
+    int pos = 0;
+    unsigned char in, out;
+
+    if ( read == NULL ){
+        read = malloc ( sizeof ( read_t ) );
+        read->align = NULL;
+        read->alg_len = 0;
+        read->read = malloc ( sizeof ( char ) * stats->quality->n );
+        read->quality = malloc ( sizeof ( char ) * stats->quality->n );
+    }
+
+    // Alignment generation
+    read->align = source_generate_word ( read->align, &read->alg_len, stats->alignment );
+    // Read status
+    read->cut = false;
+   
+    // Read
+    for ( int z = 0; z < read->alg_len; z ++ ) {
+        pos = ( i < stats->quality->n ) ? i : stats->quality->n - 1;
+        if ( read->align[z] != 2 ) {
+            read->quality[i] = source_generate ( &read->align[z], 1, pos, stats->quality ) + 33;
+        }
+        switch ( read->align[z] ) {
+        case 0:
+            read->read[i] = *ref;
+            i++;
+            ref ++;
+            break;
+        case 1:
+            read->read[i] = 'I';
+            i++;
+            break;
+        case 2:
+            ref ++;
+            break;
+        case 3: {
+            in = __nucleotide ( *ref );
+            out = source_generate ( &in, 1, pos, stats->mismatch );
+            read->read[i] = __nucleotide_rev ( out );
+            i++;
+            ref++;
+            break;
+        }
+        }
+        // Reference ended
+        if ( *ref == '\0' ){
+            read->cut = true;
+            break;
+        }
+    }
+
+    // Terminal
+    read->read[i] = '\0';
+    read->quality[i] = '\0';
+
+    return read;
+}
+
 
 void stats_dump ( FILE * file, stats_t * stats ) {
     fprintf ( file, "@alignment %d\n", stats->alignment->n );

@@ -15,12 +15,21 @@
 #include "allele.h"
 
 typedef struct stats_t stats_t;
+typedef struct read_t read_t;
 
 struct stats_t {
     source_t * alignment;
     source_t * mismatch;
     source_t * quality;
     source_t * distribution;
+};
+
+struct read_t {
+    unsigned char * align;
+    int alg_len;
+    char * read;
+    unsigned char * quality;
+    bool cut;
 };
 
 /*
@@ -42,9 +51,19 @@ stats_t * stats_init ( );
 void stats_update ( unsigned char * align, int alg_len, char * read, char * ref, unsigned char * quality, stats_t * stats );
 
 /*
+ * Generates a read using the internal statistics
+ *
+ * @param ref   reference sequence
+ * @param read  pointer to the read to be filled
+ * @param stats pointer to the statistics
+ * @returns     pointer to the generated structure
+ */
+read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats );
+
+/*
  * Frees the memory
  *
- * @param al pointer to the aligner
+ * @param stats pointer to the statistics
  */
 void stats_destroy ( stats_t * stats );
 
