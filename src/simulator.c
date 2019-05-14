@@ -180,9 +180,11 @@ int main ( int argc, char ** argv ) {
         kseq_destroy ( seq[i] );
     }
     fclose ( model );
-    free ( generated->read );
-    free ( generated->align );
-    free ( generated->quality );
+    if ( generated != NULL ){
+        free ( generated->read );
+        free ( generated->align );
+        free ( generated->quality );
+    }
     free ( generated );
     free ( fp );
     free ( seq );
