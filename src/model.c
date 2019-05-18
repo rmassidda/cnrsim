@@ -31,9 +31,13 @@ model_t * model_parse ( FILE * file, model_t * model ){
 }
 
 void model_destroy ( model_t * model ){
+    if ( model == NULL ){
+        return;
+    }
     stats_destroy ( model->single );
     stats_destroy ( model->pair );
     source_destroy ( model->amplification );
+    free ( model );
 }
 
 void update_insert_size ( int value, model_t * model ){
