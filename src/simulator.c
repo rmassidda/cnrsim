@@ -12,6 +12,7 @@
 #include <zlib.h>
 #include <htslib/sam.h>
 #include <htslib/kseq.h>
+#include "model.h"
 #include "stats.h"
 #include "source.h"
 
@@ -23,24 +24,13 @@ void usage ( char * name ) {
 }
 
 int main ( int argc, char ** argv ) {
-    // Parsing
-    size_t len = 0;
-    ssize_t read = 0;
-    char * line = NULL;
-    int n_line = 0;
-    int insert_size = 0;
-    double w;
-    stats_t * curr_end = NULL;
-    source_t * curr_source = NULL;
-    char * token;
     // Input
     int ploidy;
     char * model_name;
     char * fastq;
     // Error
-    FILE * model;
-    stats_t * single;
-    stats_t * pair;
+    FILE * model_fp;
+    model_t * model;
     read_t * generated = NULL;
     // FASTA
     gzFile * fp;
@@ -55,84 +45,16 @@ int main ( int argc, char ** argv ) {
     // Error Model
     model_name = argv[optind++];
     // File open
-    model = fopen ( model_name, "r" );
-    if ( model == NULL ) {
+    model_fp = fopen ( model_name, "r" );
+    if ( model_fp == NULL ) {
         fprintf ( stderr, "File %s not found.\n", model_name );
         exit ( EXIT_FAILURE );
     }
-    // Init stats
-    single = stats_init();
-    pair = stats_init();
 
-    // Model Parsing
-    curr_end = single;
-    while ( ( read = getline ( &line, &len, model ) ) != -1 ) {
-        // Remove new line
-        line[read - 1] = '\0';
-        // Parse first token
-        token = strtok ( line, " " );    
-
-        // Start of new stats
-        if ( token[0] == '#' ){
-            // Read end
-            if ( strcmp ( token, "#single" ) == 0 ){
-                curr_end = single;
-            }
-            else if ( strcmp ( token, "#pair" ) == 0 ){
-                curr_end = pair;
-            }
-            // Insert size
-            token = strtok ( NULL, " " );    
-            insert_size = atoi ( token );
-        }
-        else if ( token[0] == '@' ){
-            // Update parse status
-            if ( strcmp ( token, "@alignment" ) == 0 ) {
-                curr_source = curr_end->alignment;
-            }
-            else if ( strcmp ( token, "@mismatch" ) == 0 ){
-                curr_source = curr_end->mismatch;
-            }
-            else if ( strcmp ( token, "@quality" ) == 0 ){
-                curr_source = curr_end->quality;
-            }
-            else if ( strcmp ( token, "@distribution" ) == 0 ){
-                curr_source = curr_end->distribution;
-            }
-            else{
-                printf ( "%s, not parsable.\n", token );
-                exit ( EXIT_FAILURE );
-            }
-            // Get length
-            token = strtok ( NULL, " " );    
-            curr_source->n = atoi ( token );
-            // Allocate matrix
-            curr_source->normalized = malloc ( sizeof ( unsigned long * ) * curr_source->n );
-            curr_source->raw = malloc ( sizeof ( double * ) * curr_source->n );
-            for ( int i = 0; i < curr_source->n; i ++ ) {
-                curr_source->raw[i] = NULL;
-                curr_source->normalized[i] = malloc ( 
-                        curr_source->omega * curr_source->prefix * sizeof ( double )
-                        );
-            }
-            n_line = 0;
-        }
-        // Load data
-        else{
-            w = atof ( token );
-            for ( int i = 0; i < curr_source->prefix; i ++ ) {
-                for ( int j = 0; j < curr_source->omega; j ++ ) {
-                    curr_source->normalized[n_line][ i * curr_source->omega + j] = w;
-                    token = strtok ( NULL, " " );    
-                    if ( token != NULL ) {
-                        w = atof ( token );
-                    }
-                }
-            }
-            n_line ++;
-        }
-    }
-
+    // Init model
+    model = model_init ();
+    model = model_parse ( model_fp, model );
+    fclose ( model_fp );
 
     // Input sequences
     ploidy = argc - optind;
@@ -154,7 +76,7 @@ int main ( int argc, char ** argv ) {
         while ( kseq_read ( seq[i] ) >= 0 ) {
             int j = 0;
             while ( j < seq[i]->seq.l ){
-                generated = stats_generate_read ( &seq[i]->seq.s[j], generated, single );
+                generated = stats_generate_read ( &seq[i]->seq.s[j], generated, model->single );
                 if ( ! generated->cut ){
                     printf ( ">%s %d\n", seq[i]->name.s, j );
                     printf ( "%s\n", generated->read );
@@ -162,10 +84,10 @@ int main ( int argc, char ** argv ) {
                     printf ( "%s\n\n", generated->quality );
                 }
                 // Generate pair
-                if ( j + insert_size < seq[i]->seq.l ){
-                    generated = stats_generate_read ( &seq[i]->seq.s[j+insert_size], generated, pair );
+                if ( j + model->insert_size < seq[i]->seq.l ){
+                    generated = stats_generate_read ( &seq[i]->seq.s[j+model->insert_size], generated, model->pair );
                     if ( ! generated->cut ){
-                        printf ( ">%s %d\n", seq[i]->name.s, j + insert_size );
+                        printf ( ">%s %d\n", seq[i]->name.s, j + model->insert_size );
                         printf ( "%s\n", generated->read );
                         printf ( "+\n" );
                         printf ( "%s\n\n", generated->quality );
@@ -182,7 +104,6 @@ int main ( int argc, char ** argv ) {
         gzclose ( fp[i] );
         kseq_destroy ( seq[i] );
     }
-    fclose ( model );
     if ( generated != NULL ){
         free ( generated->read );
         free ( generated->align );
@@ -191,8 +112,6 @@ int main ( int argc, char ** argv ) {
     free ( generated );
     free ( fp );
     free ( seq );
-    free ( line );
-    stats_destroy ( single );
-    stats_destroy ( pair );
+    model_destroy ( model );
     exit ( EXIT_SUCCESS );
 }

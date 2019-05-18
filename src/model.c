@@ -27,6 +27,87 @@ model_t * model_init (){
 }
 
 model_t * model_parse ( FILE * file, model_t * model ){
+    // Parsing
+    size_t len = 0;
+    ssize_t read = 0;
+    char * line = NULL;
+    int n_line = 0;
+    double w;
+    stats_t * curr_end = NULL;
+    source_t * curr_source = NULL;
+    char * token;
+
+    // Model Parsing
+    curr_end = model->single;
+    while ( ( read = getline ( &line, &len, file ) ) != -1 ) {
+        // Remove new line
+        line[read - 1] = '\0';
+        // Parse first token
+        token = strtok ( line, " " );    
+
+        // Start of new stats
+        if ( token[0] == '#' ){
+            // Read end
+            if ( strcmp ( token, "#single" ) == 0 ){
+                curr_end = model->single;
+            }
+            else if ( strcmp ( token, "#pair" ) == 0 ){
+                curr_end = model->pair;
+            }
+            // Insert size
+            token = strtok ( NULL, " " );    
+            model->insert_size = atoi ( token );
+        }
+        else if ( token[0] == '@' ){
+            // Update parse status
+            if ( strcmp ( token, "@alignment" ) == 0 ) {
+                curr_source = curr_end->alignment;
+            }
+            else if ( strcmp ( token, "@mismatch" ) == 0 ){
+                curr_source = curr_end->mismatch;
+            }
+            else if ( strcmp ( token, "@quality" ) == 0 ){
+                curr_source = curr_end->quality;
+            }
+            else if ( strcmp ( token, "@distribution" ) == 0 ){
+                curr_source = curr_end->distribution;
+            }
+            else{
+                printf ( "%s, not parsable.\n", token );
+                exit ( EXIT_FAILURE );
+            }
+            // Get length
+            token = strtok ( NULL, " " );    
+            curr_source->n = atoi ( token );
+            // Allocate matrix
+            curr_source->normalized = malloc ( sizeof ( unsigned long * ) * curr_source->n );
+            curr_source->raw = malloc ( sizeof ( double * ) * curr_source->n );
+            for ( int i = 0; i < curr_source->n; i ++ ) {
+                curr_source->raw[i] = NULL;
+                curr_source->normalized[i] = malloc ( 
+                        curr_source->omega * curr_source->prefix * sizeof ( double )
+                        );
+            }
+            n_line = 0;
+        }
+        // Load data
+        else{
+            w = atof ( token );
+            for ( int i = 0; i < curr_source->prefix; i ++ ) {
+                for ( int j = 0; j < curr_source->omega; j ++ ) {
+                    curr_source->normalized[n_line][ i * curr_source->omega + j] = w;
+                    token = strtok ( NULL, " " );    
+                    if ( token != NULL ) {
+                        w = atof ( token );
+                    }
+                }
+            }
+            n_line ++;
+        }
+    }
+
+    free ( line );
+
     return model;
 }
 
