@@ -152,7 +152,8 @@ int main ( int argc, char ** argv ) {
 
     for ( int i = 0; i < ploidy; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
-            for ( int j = 0; j < seq[i]->seq.l; j ++ ){
+            int j = 0;
+            while ( j < seq[i]->seq.l ){
                 generated = stats_generate_read ( &seq[i]->seq.s[j], generated, single );
                 if ( ! generated->cut ){
                     printf ( ">%s %d\n", seq[i]->name.s, j );
@@ -170,6 +171,8 @@ int main ( int argc, char ** argv ) {
                         printf ( "%s\n\n", generated->quality );
                     }
                 }
+                // TODO: arbitrary value, this is only for testing
+                j += 20;
             }
         }
     }
