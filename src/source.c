@@ -194,6 +194,9 @@ void source_dump ( FILE * file, source_t * source ) {
 }
 
 void source_destroy ( source_t * source ) {
+    if ( source == NULL ){
+        return;
+    }
     for ( int i = 0; i < source->n; i ++ ) {
         free ( source->raw[i] );
     }

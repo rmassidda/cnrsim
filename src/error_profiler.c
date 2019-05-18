@@ -18,6 +18,7 @@
 #include <htslib/sam.h>
 #include <htslib/kseq.h>
 #include "allele.h"
+#include "model.h"
 #include "stats.h"
 #include "translate_notation.h"
 
@@ -159,10 +160,8 @@ int main ( int argc, char ** argv ) {
     int start;
     int end;
     // Statistics
-    stats_t * stats[2];
-    double insert_size = 0;
-    int read_number = 0;
-    int pair;
+    model_t * model;
+    stats_t * curr_stats;
     int min_score;
     int min_start = 0;
     int min_index = 0;
@@ -244,8 +243,8 @@ int main ( int argc, char ** argv ) {
 
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
-    stats[0] = stats_init ();
-    stats[1] = stats_init ();
+
+    model = model_init ( );
 
     // While there are sequences to read in the FASTA file
     while ( ! last ) {
@@ -287,10 +286,10 @@ int main ( int argc, char ** argv ) {
             while ( bam_itr_next ( fp, itr, line ) > 0 ) {
                 // Paired end
                 if ( line->core.flag == 99 || line->core.flag == 163 ) {
-                    pair = 1;
+                    curr_stats = model->pair;
                 } 
                 else if ( line->core.flag == 147 || line->core.flag == 83 ){
-                    pair = 0;
+                    curr_stats = model->single;
                 }
                 else{
                     continue;
@@ -304,8 +303,7 @@ int main ( int argc, char ** argv ) {
 
                 // Insert size
                 if ( line->core.tid == line->core.mtid && line->core.mpos > pos ){
-                    insert_size += ( line->core.mpos - pos - len );
-                    read_number ++;
+                    update_insert_size ( line->core.mpos - pos - len, model );
                 }
                 
                 // Interval of the reference
@@ -376,7 +374,7 @@ int main ( int argc, char ** argv ) {
                     read,
                     &allele[min_index]->sequence[min_start],
                     qual,
-                    stats[pair]
+                    curr_stats                    
                 );
 
                 for ( int i = 0; i < ploidy; i ++ ) {
@@ -391,10 +389,7 @@ int main ( int argc, char ** argv ) {
 
     // Dump statistics
     if ( !silent ) {
-        printf ( "#single 0\n" );
-        stats_dump ( stdout, stats[0] );
-        printf ( "#pair %d\n", (int)(insert_size/(double)read_number) );
-        stats_dump ( stdout, stats[1] );
+        model_dump ( stdout, model );
     }
 
     // Cleanup
@@ -411,8 +406,7 @@ int main ( int argc, char ** argv ) {
     bam_hdr_destroy ( hdr );
     bam_itr_destroy ( itr );
     hts_idx_destroy ( index );
-    stats_destroy ( stats[0] );
-    stats_destroy ( stats[1] );
+    model_destroy ( model );
     sam_close ( fp );
     free ( read );
     tr_destroy ( alias_index );
