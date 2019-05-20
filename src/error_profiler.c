@@ -253,12 +253,7 @@ int main ( int argc, char ** argv ) {
             int x = kseq_read ( seq[i] );
             if ( x >= 0 || x == -2 ) {
                 // Alignment of the sequence
-                if ( seq[i]->qual.l > 0 ){
-                    align = seq[i]->qual.s;
-                }
-                else{
-                    align = NULL;
-                }
+                align = ( seq[i]->qual.l > 0 ) ? seq[i]->qual.s : NULL;
                 // Update allele
                 allele[i] = allele_point (
                         seq[i]->seq.l,
