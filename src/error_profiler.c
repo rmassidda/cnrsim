@@ -136,7 +136,7 @@ int main ( int argc, char ** argv ) {
     allele_t ** allele;
     bool last = false;
     // Tandem repeats
-    bool tandem = false;
+    int tandem = 0;
     tandem_set_t ** trs;
     // BAM
     htsFile * fp;
@@ -170,7 +170,7 @@ int main ( int argc, char ** argv ) {
     int min_start = 0;
     int min_index = 0;
 
-    while ( ( opt = getopt ( argc, argv, "svtd:" ) ) != -1 ) {
+    while ( ( opt = getopt ( argc, argv, "svt:d:" ) ) != -1 ) {
         switch ( opt ) {
         case 's':
             silent = true;
@@ -179,7 +179,7 @@ int main ( int argc, char ** argv ) {
             verbose = true;
             break;
         case 't':
-            tandem = true;
+            tandem = atoi ( optarg );
             break;
         case 'd':
             dictionary = optarg;
@@ -270,8 +270,8 @@ int main ( int argc, char ** argv ) {
                         align,                        
                         allele[i]
                         );
-                if ( tandem ) {
-                    trs[i] = tandem_set_init ( seq[i]->seq.l, 6, 15, trs[i] );
+                if ( tandem != 0 ) {
+                    trs[i] = tandem_set_init ( seq[i]->seq.l, 6, tandem, trs[i] );
                     trs[i] = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, trs[i] );
                 }
             }
