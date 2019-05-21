@@ -20,13 +20,14 @@
 #include "allele.h"
 #include "model.h"
 #include "stats.h"
+#include "tandem.h"
 #include "translate_notation.h"
 
 // Init kseq structure
 KSEQ_INIT ( gzFile, gzread );
 
 void usage ( char * name ) {
-    fprintf ( stderr, "Usage: %s [-d dictionary] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
+    fprintf ( stderr, "Usage: %s [-d dictionary] [-t] [-v] [-s] bam_file fasta_file [allele_file ...]\n", name );
 }
 
 void dump_read ( char * ref, unsigned char * alignment, int alg_len, char * read, uint8_t * quality ) {
@@ -134,6 +135,9 @@ int main ( int argc, char ** argv ) {
     char * align;
     allele_t ** allele;
     bool last = false;
+    // Tandem repeats
+    bool tandem = false;
+    tandem_set_t ** trs;
     // BAM
     htsFile * fp;
     bam_hdr_t * hdr;
@@ -166,13 +170,16 @@ int main ( int argc, char ** argv ) {
     int min_start = 0;
     int min_index = 0;
 
-    while ( ( opt = getopt ( argc, argv, "svd:" ) ) != -1 ) {
+    while ( ( opt = getopt ( argc, argv, "svtd:" ) ) != -1 ) {
         switch ( opt ) {
         case 's':
             silent = true;
             break;
         case 'v':
             verbose = true;
+            break;
+        case 't':
+            tandem = true;
             break;
         case 'd':
             dictionary = optarg;
@@ -225,8 +232,9 @@ int main ( int argc, char ** argv ) {
     // Malloc of the structures
     fasta = malloc ( sizeof ( gzFile ) * ploidy );
     seq = malloc ( sizeof ( kseq_t * ) * ploidy );
-    allele = malloc ( sizeof ( struct allele_t * ) * ploidy );
+    allele = malloc ( sizeof ( allele_t * ) * ploidy );
     edlib_alg = malloc ( sizeof ( EdlibAlignResult ) * ploidy );
+    trs = malloc ( sizeof ( tandem_set_t * ) * ploidy );
 
     // Init sequences
     for ( int i = 0; i < ploidy; i ++ ) {
@@ -237,6 +245,7 @@ int main ( int argc, char ** argv ) {
             exit ( EXIT_FAILURE );
         }
         seq[i] = kseq_init ( fasta[i] );
+        trs[i] = NULL;
         allele[i] = NULL;
         optind ++;
     }
@@ -261,6 +270,10 @@ int main ( int argc, char ** argv ) {
                         align,                        
                         allele[i]
                         );
+                if ( tandem ) {
+                    trs[i] = tandem_set_init ( seq[i]->seq.l, 6, 15, trs[i] );
+                    trs[i] = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, trs[i] );
+                }
             }
             else{
                 last = true;
@@ -391,10 +404,14 @@ int main ( int argc, char ** argv ) {
     for ( int i = 0; i < ploidy; i ++ ) {
         gzclose ( fasta[i] );
         kseq_destroy( seq[i] );
+        tandem_set_destroy ( trs[i] );
+        // Free and not destroy because
+        // the sequence is externally allocated
         free ( allele[i] );
     }
     free ( fasta );
     free ( seq );
+    free ( trs );
     free ( allele );
     free ( edlib_alg );
     bam_destroy1 ( line );
