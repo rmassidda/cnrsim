@@ -57,9 +57,10 @@ tandem_set_t * tandem_set_analyze ( char * reference, int length, tandem_set_t *
                     break;
                 }
             }
-            // The best tandem is the wider one
-            // with same width wins the smaller motif
-            if ( i * w[i] > max * w[max] ){
+            // The best tandem is the wider one with at least
+            // two repetitions with the same width wins 
+            // the smaller motif
+            if ( w[i] > 1 && (i * w[i]) > (max * w[max]) ){
                 max = i;
             }
         }
