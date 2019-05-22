@@ -49,7 +49,7 @@ tandem_set_t * tandem_set_analyze ( char * reference, int length, tandem_set_t *
             // Motif appears at least one time
             w[i] = 1;
             // If the sequences are comparable
-            while ( w[i] < set->max_repetition && ( pos + (w[i] + 1) * i ) <= length ){
+            while ( ( pos + (w[i] + 1) * i ) <= length ){
                 if ( strncasecmp ( &reference[pos], &reference[pos + w[i] * i], i ) == 0 ){
                     w[i] ++;
                 }
@@ -64,7 +64,7 @@ tandem_set_t * tandem_set_analyze ( char * reference, int length, tandem_set_t *
                 max = i;
             }
         }
-        if ( w[max] > 1 ){
+        if ( w[max] < set->max_repetition && w[max] > 1 ){
             // Save tandem repeat
             set->set[set->n].pos = pos;
             set->set[set->n].pat = max;
