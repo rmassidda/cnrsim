@@ -20,6 +20,7 @@ struct tandem_t {
 
 struct tandem_set_t {
     tandem_t * set; // set of tandem repeats in a sequence
+    int i; // index of the current tandem
     int n; // number of tr
     int size; // size of allocated memory
     int max_motif; // size of the maximum motif analyzed

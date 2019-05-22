@@ -30,6 +30,8 @@ tandem_set_t * tandem_set_init ( int length, int max_motif, int max_repetition, 
     set->size = tmp_size;
     // Number of valid tandem repeats in the set
     set->n = 0;
+    // Current tandem
+    set->i = 0;
 
     return set;
 }
@@ -65,6 +67,9 @@ tandem_set_t * tandem_set_analyze ( char * reference, int length, tandem_set_t *
             }
         }
         if ( w[max] < set->max_repetition && w[max] > 1 ){
+            if ( set->n >= set->size ){
+                return set;
+            }
             // Save tandem repeat
             set->set[set->n].pos = pos;
             set->set[set->n].pat = max;
