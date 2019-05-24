@@ -34,18 +34,10 @@ void dump_read ( char * ref, unsigned char * alignment, int alg_len, char * read
     // Quality
     for ( int z = 0; z < alg_len; z ++ ) {
         switch ( alignment[z] ) {
-        case 0:
-            printf ( "%c", ( *quality + 33 ) );
-            quality ++;
-            break;
-        case 1:
-            printf ( "%c", ( *quality + 33 ) );
-            quality ++;
-            break;
         case 2:
             printf ( " " );
             break;
-        case 3:
+        default:
             printf ( "%c", ( *quality + 33 ) );
             quality ++;
             break;
@@ -56,18 +48,10 @@ void dump_read ( char * ref, unsigned char * alignment, int alg_len, char * read
     // Read
     for ( int z = 0; z < alg_len; z ++ ) {
         switch ( alignment[z] ) {
-        case 0:
-            printf ( "%c", *read );
-            read ++;
-            break;
-        case 1:
-            printf ( "%c", *read );
-            read ++;
-            break;
         case 2:
             printf ( " " );
             break;
-        case 3:
+        default:
             printf ( "%c", *read );
             read ++;
             break;
@@ -97,26 +81,15 @@ void dump_read ( char * ref, unsigned char * alignment, int alg_len, char * read
     // Reference
     for ( int z = 0; z < alg_len; z ++ ) {
         switch ( alignment[z] ) {
-        case 0:
-            printf ( "%c", *ref );
-            ref ++;
-            break;
         case 1:
             printf ( " " );
             break;
-        case 2:
-            printf ( "%c", *ref );
-            ref ++;
-            break;
-        case 3:
+        default:
             printf ( "%c", *ref );
             ref ++;
             break;
         }
     }
-    printf ( "\n" );
-
-    // Newline
     printf ( "\n" );
 }
 
@@ -373,6 +346,106 @@ int main ( int argc, char ** argv ) {
                             edlib_alg[i].alignmentLength,
                             read,
                             qual );
+                    }
+                }
+
+                if ( tandem != 0 ){
+                    // Tandem index
+                    int tin = trs[min_index]->i;
+                    // Number of tandems
+                    int n = trs[min_index]->n;
+                    // Tandems set
+                    tandem_t * set = trs[min_index]->set;
+
+                    // Tandem not in the reads
+                    while ( set[tin].pos < min_start && tin < n ){
+                        tin ++;
+                    }
+                    // Reads are sorted, so these tandems will never be used
+                    trs[min_index]->i = tin;
+
+                    // Possibile tandems
+                    int read_end = min_start + strlen ( read );
+                    while ( set[tin].pos < read_end && tin < n ){
+                        // Find position
+                        int read_pos = 0;
+                        int ref_pos = min_start;
+                        int alg = 0;
+                        unsigned char * alg_str = edlib_alg[min_index].alignment;
+                        int alg_len = edlib_alg[min_index].alignmentLength;
+                        int rep = 0;
+                        int motif = set[tin].pat;
+                        // Adjust ref_pos and ref_pos
+                        while ( alg < alg_len && alg_str[alg] == 1 ){
+                            read_pos ++;
+                            alg ++;
+                        }
+                        while ( alg < alg_len && ref_pos < set[tin].pos ) {
+                            do {
+                                alg ++;
+                                if ( alg_str[alg] == 1 ) {
+                                    read_pos ++;
+                                } else if ( alg_str[alg] == 2 ) {
+                                    read_pos --;
+                                }
+                            } while ( alg < alg_len && alg_str[alg] == 1 );
+                            read_pos ++;
+                            ref_pos ++;
+                        }
+                        if ( read_pos + (rep + 1) * motif < len ){
+                            // Compare pattern
+                            if ( strncasecmp ( &seq[min_index]->seq.s[set[tin].pos], &read[read_pos], motif ) == 0 ){
+                                rep = 1;
+                                // Compare right patterns
+                                while ( read_pos + (rep + 1) * motif < len ){
+                                    if ( strncasecmp ( &read[read_pos], &read[read_pos + rep * motif], motif ) == 0 ){
+                                        rep ++;
+                                    }
+                                    else{
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if ( verbose ) {
+                            alg = 0;
+                            // Print of the reference tandem
+                            int z = min_start - set[tin].pos;
+                            while ( z < set[tin].pat * set[tin].rep ){
+                                if ( alg_str[alg] == 1 ){
+                                    printf ( " " );
+                                }
+                                else if ( z < 0 ){
+                                    printf ( " " );
+                                    z ++;
+                                }
+                                else {
+                                    printf ( "%c", seq[min_index]->seq.s[set[tin].pos+z] );
+                                    z ++;
+                                }
+                                alg ++;
+                            }
+                            printf ( "\n" );
+                            alg = 0;
+                            // Print of the read tandem
+                            z = - read_pos;
+                            while ( z < motif * rep ){
+                                if ( alg_str[alg] == 2 ){
+                                    printf ( " " );
+                                }
+                                else if ( z < 0 ){
+                                    printf ( " " );
+                                    z ++;
+                                }
+                                else {
+                                    printf ( "%c", read[read_pos + z] );
+                                    z ++;
+                                }
+                                alg ++;
+                            }
+                            printf ( "\n" );
+                        }
+                        tin ++;
                     }
                 }
 
