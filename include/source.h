@@ -28,7 +28,7 @@ struct source_t {
  * @param       m       memory
  * @returns     the initialized structure
  */
-source_t * source_init ( int sigma, int omega, int m );
+source_t * source_init ( int sigma, int omega, int m, int graph );
 
 /*
  * Updates the data with a new example

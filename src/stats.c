@@ -18,13 +18,13 @@ stats_t * stats_init ( ) {
 
     // Data sources
     // Alignment: cigar -> cigar
-    stats->alignment = source_init ( 4, 4, 2 );
+    stats->alignment = source_init ( 4, 4, 2, 1 );
     // Mismatch: nucleotides -> nucleotides
-    stats->mismatch = source_init ( 5, 5, 1 );
+    stats->mismatch = source_init ( 5, 5, 1, 0);
     // Quality: cigar -> ASCII
-    stats->quality = source_init ( 4, 128, 1 );
+    stats->quality = source_init ( 4, 128, 1, 0 );
     // Distribution of errors in read
-    stats->distribution = source_init ( 0, 4, 0 );
+    stats->distribution = source_init ( 0, 4, 0, 0 );
 
     return stats;
 }

@@ -13,7 +13,7 @@
 #include <math.h>
 #include "source.h"
 
-source_t * source_init ( int sigma, int omega, int m ) {
+source_t * source_init ( int sigma, int omega, int m, int graph ) {
     source_t * source = malloc ( sizeof ( source_t ) );
     if ( source == NULL ) {
         return NULL;
@@ -28,8 +28,8 @@ source_t * source_init ( int sigma, int omega, int m ) {
     source->m = m;
 
     // Alphabets
-    source->sigma = sigma + 1; // exceptional start character
-    source->omega = omega + 1; // exceptional end character
+    source->sigma = sigma + graph; // exceptional start character
+    source->omega = omega + graph; // exceptional end character
     source->prefix = ( int ) pow ( source->sigma, source->m );
 
     // Data

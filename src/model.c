@@ -21,7 +21,7 @@ model_t * model_init (){
     model->pair = stats_init ();
     model->insert_size = 0;
     model->_read_number = 0;
-    model->amplification = source_init ( 100, 100, 1 );
+    model->amplification = source_init ( 100, 100, 1, 0 );
 
     return model;
 }
