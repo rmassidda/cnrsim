@@ -21,7 +21,7 @@ model_t * model_init (){
     model->pair = stats_init ();
     model->insert_size = 0;
     model->_read_number = 0;
-    model->amplification = NULL;
+    model->amplification = source_init ( 100, 100, 1 );
 
     return model;
 }
@@ -53,10 +53,13 @@ model_t * model_parse ( FILE * file, model_t * model ){
             }
             else if ( strcmp ( token, "#pair" ) == 0 ){
                 curr_end = model->pair;
+                // Insert size
+                token = strtok ( NULL, " " );    
+                model->insert_size = atoi ( token );
             }
-            // Insert size
-            token = strtok ( NULL, " " );    
-            model->insert_size = atoi ( token );
+            else if ( strcmp ( token, "#amplification" ) == 0 ){
+                curr_end = NULL;
+            }
         }
         else if ( token[0] == '@' ){
             // Update parse status
@@ -71,6 +74,9 @@ model_t * model_parse ( FILE * file, model_t * model ){
             }
             else if ( strcmp ( token, "@distribution" ) == 0 ){
                 curr_source = curr_end->distribution;
+            }
+            else if ( strcmp ( token, "@tandem" ) == 0 ){
+                curr_source = model->amplification;
             }
             else{
                 printf ( "%s, not parsable.\n", token );
@@ -134,4 +140,7 @@ void model_dump ( FILE * file, model_t * model ){
     stats_dump ( file, model->single );
     fprintf ( file, "#pair %d\n", model->insert_size );
     stats_dump ( file, model->pair );
+    fprintf ( file, "#amplification\n" );
+    fprintf ( file, "@tandem %d\n", model->amplification->n );
+    source_dump ( file, model->amplification );
 }

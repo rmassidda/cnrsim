@@ -367,14 +367,16 @@ int main ( int argc, char ** argv ) {
                     // Possibile tandems
                     int read_end = min_start + strlen ( read );
                     while ( tin < n && set[tin].pos < read_end ){
+                        // Learning example
+                        int motif = set[tin].pat;
+                        unsigned char in = set[tin].rep;
+                        unsigned char out = 0;
                         // Find position
                         int read_pos = -1;
                         int ref_pos = min_start - 1;
                         int alg = 0;
                         unsigned char * alg_str = edlib_alg[min_index].alignment;
                         int alg_len = edlib_alg[min_index].alignmentLength;
-                        int rep = 0;
-                        int motif = set[tin].pat;
                         // Adjust ref_pos and ref_pos
                         while ( alg < alg_len && ( ref_pos < 0 || ref_pos < set[tin].pos ) ) {
                             switch ( alg_str[alg] ){
@@ -390,14 +392,14 @@ int main ( int argc, char ** argv ) {
                             }
                             alg ++;
                         }
-                        if ( read_pos + (rep + 1) * motif < len ){
+                        if ( read_pos + (out + 1) * motif < len ){
                             // Compare pattern
                             if ( strncasecmp ( &seq[min_index]->seq.s[set[tin].pos], &read[read_pos], motif ) == 0 ){
-                                rep = 1;
+                                out = 1;
                                 // Compare right patterns
-                                while ( read_pos + (rep + 1) * motif < len ){
-                                    if ( strncasecmp ( &read[read_pos], &read[read_pos + rep * motif], motif ) == 0 ){
-                                        rep ++;
+                                while ( read_pos + (out + 1) * motif < len ){
+                                    if ( strncasecmp ( &read[read_pos], &read[read_pos + out * motif], motif ) == 0 ){
+                                        out ++;
                                     }
                                     else{
                                         break;
@@ -409,7 +411,7 @@ int main ( int argc, char ** argv ) {
                             alg = 0;
                             // Print of the reference tandem
                             int z = min_start - set[tin].pos;
-                            while ( z < set[tin].pat * set[tin].rep ){
+                            while ( z < motif * in ){
                                 if ( alg_str[alg] == 1 ){
                                     printf ( " " );
                                 }
@@ -427,7 +429,7 @@ int main ( int argc, char ** argv ) {
                             alg = 0;
                             // Print of the read tandem
                             z = - read_pos;
-                            while ( z < motif * rep ){
+                            while ( z < motif * out ){
                                 if ( alg_str[alg] == 2 ){
                                     printf ( " " );
                                 }
@@ -443,6 +445,8 @@ int main ( int argc, char ** argv ) {
                             }
                             printf ( "\n" );
                         }
+                        // Update tandem statistics
+                        source_update ( &in, 1, out, motif, model->amplification );
                         tin ++;
                     }
                 }
