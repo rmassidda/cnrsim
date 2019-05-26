@@ -66,7 +66,7 @@ tandem_set_t * tandem_set_analyze ( char * reference, int length, tandem_set_t *
                 max = i;
             }
         }
-        if ( w[max] < set->max_repetition && w[max] > 1 ){
+        if ( w[max] > 1 ){
             if ( set->n >= set->size ){
                 return set;
             }
