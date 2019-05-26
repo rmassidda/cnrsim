@@ -29,7 +29,7 @@ struct model_t {
  *
  * @ret initialized structure, NULL if error
  */
-model_t * model_init ( );
+model_t * model_init ( int max_repetition );
 
 /*
  * Initalize the model from a file

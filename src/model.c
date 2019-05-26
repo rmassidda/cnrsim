@@ -13,7 +13,7 @@
 #include "stats.h"
 #include "model.h"
 
-model_t * model_init (){
+model_t * model_init ( int max_repetition ){
     model_t * model = malloc ( sizeof ( model_t ) );
     if ( model == NULL ) return model;
 
@@ -21,7 +21,7 @@ model_t * model_init (){
     model->pair = stats_init ();
     model->insert_size = 0;
     model->_read_number = 0;
-    model->amplification = source_init ( 100, 100, 1, 0 );
+    model->amplification = source_init ( max_repetition, max_repetition, 1, 0 );
 
     return model;
 }

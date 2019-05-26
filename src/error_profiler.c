@@ -226,7 +226,7 @@ int main ( int argc, char ** argv ) {
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
 
-    model = model_init ( );
+    model = model_init ( tandem );
 
     // While there are sequences to read in the FASTA file
     while ( ! last ) {
@@ -446,7 +446,9 @@ int main ( int argc, char ** argv ) {
                             printf ( "\n" );
                         }
                         // Update tandem statistics
-                        source_update ( &in, 1, motif, out, model->amplification );
+                        if ( in < tandem && out < tandem ) {
+                            source_update ( &in, 1, motif, out, model->amplification );
+                        }
                         tin ++;
                     }
                 }
