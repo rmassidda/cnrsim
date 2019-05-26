@@ -446,7 +446,7 @@ int main ( int argc, char ** argv ) {
                             printf ( "\n" );
                         }
                         // Update tandem statistics
-                        source_update ( &in, 1, out, motif, model->amplification );
+                        source_update ( &in, 1, motif, out, model->amplification );
                         tin ++;
                     }
                 }
