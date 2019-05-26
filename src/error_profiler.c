@@ -358,7 +358,7 @@ int main ( int argc, char ** argv ) {
                     tandem_t * set = trs[min_index]->set;
 
                     // Tandem not in the reads
-                    while ( set[tin].pos < min_start && tin < n ){
+                    while ( tin < n && set[tin].pos < min_start ){
                         tin ++;
                     }
                     // Reads are sorted, so these tandems will never be used
@@ -366,31 +366,29 @@ int main ( int argc, char ** argv ) {
 
                     // Possibile tandems
                     int read_end = min_start + strlen ( read );
-                    while ( set[tin].pos < read_end && tin < n ){
+                    while ( tin < n && set[tin].pos < read_end ){
                         // Find position
-                        int read_pos = 0;
-                        int ref_pos = min_start;
+                        int read_pos = -1;
+                        int ref_pos = min_start - 1;
                         int alg = 0;
                         unsigned char * alg_str = edlib_alg[min_index].alignment;
                         int alg_len = edlib_alg[min_index].alignmentLength;
                         int rep = 0;
                         int motif = set[tin].pat;
                         // Adjust ref_pos and ref_pos
-                        while ( alg < alg_len && alg_str[alg] == 1 ){
-                            read_pos ++;
-                            alg ++;
-                        }
-                        while ( alg < alg_len && ref_pos < set[tin].pos ) {
-                            do {
-                                alg ++;
-                                if ( alg_str[alg] == 1 ) {
+                        while ( alg < alg_len && ( ref_pos < 0 || ref_pos < set[tin].pos ) ) {
+                            switch ( alg_str[alg] ){
+                                case 1:
                                     read_pos ++;
-                                } else if ( alg_str[alg] == 2 ) {
-                                    read_pos --;
-                                }
-                            } while ( alg < alg_len && alg_str[alg] == 1 );
-                            read_pos ++;
-                            ref_pos ++;
+                                    break;
+                                case 2:
+                                    ref_pos ++;
+                                    break;
+                                default:
+                                    read_pos ++;
+                                    ref_pos ++;
+                            }
+                            alg ++;
                         }
                         if ( read_pos + (rep + 1) * motif < len ){
                             // Compare pattern
