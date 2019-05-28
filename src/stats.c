@@ -165,14 +165,10 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
 
 
 void stats_dump ( FILE * file, stats_t * stats ) {
-    fprintf ( file, "@alignment %d\n", stats->alignment->n );
-    source_dump ( file, stats->alignment );
-    fprintf ( file, "@mismatch %d\n", stats->mismatch->n );
-    source_dump ( file, stats->mismatch );
-    fprintf ( file, "@quality %d\n", stats->quality->n );
-    source_dump ( file, stats->quality );
-    fprintf ( file, "@distribution %d\n", stats->distribution->n );
-    source_dump ( file, stats->distribution );
+    source_dump ( file, "alignment", stats->alignment );
+    source_dump ( file, "mismatch", stats->mismatch );
+    source_dump ( file, "quality", stats->quality );
+    source_dump ( file, "distribution", stats->distribution );
 }
 
 void stats_destroy ( stats_t * stats ) {

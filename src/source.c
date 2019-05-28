@@ -178,10 +178,12 @@ unsigned char * source_generate_word ( unsigned char * w, int * size, source_t *
     return w;
 }
 
-void source_dump ( FILE * file, source_t * source ) {
+void source_dump ( FILE * file, char * source_name, source_t * source ) {
     if ( source->normalized == NULL ) {
         __normalize ( source );
     }
+
+    fprintf ( file, "@%s\t%d\t%d\t%d\n", source_name, source->n, source->sigma, source->omega );
 
     for ( int i = 0; i < source->n; i ++ ) {
         for ( int j = 0; j < source->prefix; j ++ ) {

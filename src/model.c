@@ -141,6 +141,5 @@ void model_dump ( FILE * file, model_t * model ){
     fprintf ( file, "#pair %d\n", model->insert_size );
     stats_dump ( file, model->pair );
     fprintf ( file, "#amplification\n" );
-    fprintf ( file, "@tandem %d\n", model->amplification->n );
-    source_dump ( file, model->amplification );
+    source_dump ( file, "tandem", model->amplification );
 }
