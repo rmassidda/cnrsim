@@ -24,7 +24,7 @@ stats_t * stats_init ( ) {
     // Quality: cigar -> ASCII
     stats->quality = source_init ( 4, 128, 1, 0 );
     // Distribution of errors in read
-    stats->distribution = source_init ( 0, 4, 0, 0 );
+    stats->distribution = source_init ( 1, 4, 0, 0 );
 
     return stats;
 }

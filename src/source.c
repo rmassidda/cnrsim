@@ -183,7 +183,7 @@ void source_dump ( FILE * file, char * source_name, source_t * source ) {
         __normalize ( source );
     }
 
-    fprintf ( file, "@%s\t%d\t%d\t%d\n", source_name, source->n, source->sigma, source->omega );
+    fprintf ( file, "@%s\t%d\t%d\t%d\n", source_name, source->n, source->prefix, source->omega );
 
     for ( int i = 0; i < source->n; i ++ ) {
         for ( int j = 0; j < source->prefix; j ++ ) {
