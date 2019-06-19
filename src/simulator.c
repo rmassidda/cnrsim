@@ -52,7 +52,7 @@ int main ( int argc, char ** argv ) {
     }
 
     // Init model
-    model = model_init ();
+    model = model_init ( 1024 );
     model = model_parse ( model_fp, model );
     fclose ( model_fp );
 
