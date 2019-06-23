@@ -20,8 +20,7 @@ struct model_t {
     stats_t * single;
     stats_t * pair;
     source_t * amplification;
-    int insert_size;
-    int _read_number;
+    source_t * insert_size;
 };
 
 /*
@@ -29,7 +28,7 @@ struct model_t {
  *
  * @ret initialized structure, NULL if error
  */
-model_t * model_init ( int max_repetition );
+model_t * model_init ( int max_repetition, int max_insert_size );
 
 /*
  * Initalize the model from a file
@@ -37,8 +36,6 @@ model_t * model_init ( int max_repetition );
  * @ret initialized structure, NULL if error
  */
 model_t * model_parse ( FILE * file, model_t * model );
-
-void update_insert_size ( int value, model_t * model );
 
 /*
  * Frees the memory

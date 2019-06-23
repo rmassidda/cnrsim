@@ -13,15 +13,14 @@
 #include "stats.h"
 #include "model.h"
 
-model_t * model_init ( int max_repetition ){
+model_t * model_init ( int max_repetition, int max_insert_size ){
     model_t * model = malloc ( sizeof ( model_t ) );
     if ( model == NULL ) return model;
 
     model->single = stats_init ();
     model->pair = stats_init ();
-    model->insert_size = 0;
-    model->_read_number = 0;
     model->amplification = source_init ( max_repetition, max_repetition, 1, 0 );
+    model->insert_size = source_init ( 1, max_insert_size, 0, 0 );
 
     return model;
 }
@@ -53,9 +52,6 @@ model_t * model_parse ( FILE * file, model_t * model ){
             }
             else if ( strcmp ( token, "#pair" ) == 0 ){
                 curr_end = model->pair;
-                // Insert size
-                token = strtok ( NULL, " " );    
-                model->insert_size = atoi ( token );
             }
             else if ( strcmp ( token, "#amplification" ) == 0 ){
                 curr_end = NULL;
@@ -124,22 +120,16 @@ void model_destroy ( model_t * model ){
     stats_destroy ( model->single );
     stats_destroy ( model->pair );
     source_destroy ( model->amplification );
+    source_destroy ( model->insert_size );
     free ( model );
 }
 
-void update_insert_size ( int value, model_t * model ){
-    model->insert_size += value;
-    model->_read_number ++;
-}
-
 void model_dump ( FILE * file, model_t * model ){
-    if ( model->_read_number != 0 ){
-        model->insert_size = model->insert_size / model->_read_number;
-    }
-    fprintf ( file, "#single 0\n" );
+    fprintf ( file, "#single\n" );
     stats_dump ( file, model->single );
-    fprintf ( file, "#pair %d\n", model->insert_size );
+    fprintf ( file, "#pair\n" );
     stats_dump ( file, model->pair );
+    source_dump ( file, "insert_size", model->insert_size );
     fprintf ( file, "#amplification\n" );
     source_dump ( file, "tandem", model->amplification );
 }

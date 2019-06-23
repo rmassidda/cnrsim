@@ -23,6 +23,8 @@
 #include "tandem.h"
 #include "translate_notation.h"
 
+#define MAX_INSERT_SIZE 8192
+
 // Init kseq structure
 KSEQ_INIT ( gzFile, gzread );
 
@@ -109,8 +111,10 @@ int main ( int argc, char ** argv ) {
     allele_t ** allele;
     bool last = false;
     // Tandem repeats
-    int tandem = 0;
+    int tandem = 10;
     tandem_set_t ** trs;
+    // Insert size granularity
+    int size_granularity = 0;
     // BAM
     htsFile * fp;
     bam_hdr_t * hdr;
@@ -143,7 +147,7 @@ int main ( int argc, char ** argv ) {
     int min_start = 0;
     int min_index = 0;
 
-    while ( ( opt = getopt ( argc, argv, "svt:d:" ) ) != -1 ) {
+    while ( ( opt = getopt ( argc, argv, "svi:t:d:" ) ) != -1 ) {
         switch ( opt ) {
         case 's':
             silent = true;
@@ -153,6 +157,9 @@ int main ( int argc, char ** argv ) {
             break;
         case 't':
             tandem = atoi ( optarg );
+            break;
+        case 'i':
+            size_granularity = atoi ( optarg );
             break;
         case 'd':
             dictionary = optarg;
@@ -226,7 +233,7 @@ int main ( int argc, char ** argv ) {
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
 
-    model = model_init ( tandem );
+    model = model_init ( tandem, MAX_INSERT_SIZE/size_granularity );
 
     // While there are sequences to read in the FASTA file
     while ( ! last ) {
@@ -283,8 +290,11 @@ int main ( int argc, char ** argv ) {
                 uint8_t * qual = bam_get_qual ( line ); // Quality score
 
                 // Insert size
+                int insert_size = line->core.mpos - pos - len;
+                insert_size = insert_size % size_granularity;
+                insert_size = ( insert_size < MAX_INSERT_SIZE ) ? insert_size : MAX_INSERT_SIZE;
                 if ( line->core.tid == line->core.mtid && line->core.mpos > pos ){
-                    update_insert_size ( line->core.mpos - pos - len, model );
+                    source_update ( NULL, 0, 0, insert_size, model->insert_size );
                 }
                 
                 // Interval of the reference
