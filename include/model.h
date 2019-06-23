@@ -21,6 +21,7 @@ struct model_t {
     stats_t * pair;
     source_t * amplification;
     source_t * insert_size;
+    source_t * orientation;
 };
 
 /*

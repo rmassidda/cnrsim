@@ -21,6 +21,7 @@ model_t * model_init ( int max_repetition, int max_insert_size ){
     model->pair = stats_init ();
     model->amplification = source_init ( max_repetition, max_repetition, 1, 0 );
     model->insert_size = source_init ( 1, max_insert_size, 0, 0 );
+    model->orientation = source_init ( 1, 4, 0, 0 );
 
     return model;
 }
@@ -121,6 +122,7 @@ void model_destroy ( model_t * model ){
     stats_destroy ( model->pair );
     source_destroy ( model->amplification );
     source_destroy ( model->insert_size );
+    source_destroy ( model->orientation );
     free ( model );
 }
 
@@ -130,6 +132,7 @@ void model_dump ( FILE * file, model_t * model ){
     fprintf ( file, "#pair\n" );
     stats_dump ( file, model->pair );
     source_dump ( file, "insert_size", model->insert_size );
+    source_dump ( file, "orientation", model->orientation );
     fprintf ( file, "#amplification\n" );
     source_dump ( file, "tandem", model->amplification );
 }

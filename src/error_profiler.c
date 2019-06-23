@@ -139,6 +139,7 @@ int main ( int argc, char ** argv ) {
     uint8_t * read_seq;
     uint8_t * qual;
     int insert_size;
+    int orientation;
     int flank_1;
     int flank_2;
     int start;
@@ -288,13 +289,14 @@ int main ( int argc, char ** argv ) {
                     continue;
                 }
 
-                // Insert size
                 if ( curr_stats == model->single && line->core.tid == line->core.mtid ) {
                   insert_size = line->core.mpos - ( pos + len );
                   insert_size = ( insert_size < 0 ) ? -insert_size : insert_size;
                   insert_size = ( insert_size < MAX_INSERT_SIZE ) ? insert_size : MAX_INSERT_SIZE; 
                   insert_size = ( insert_size * size_granularity ) / MAX_INSERT_SIZE;
                   source_update ( NULL, 0, 0, insert_size, model->insert_size );
+                  orientation = ( line->core.flag & 48 ) >> 4;
+                  source_update ( NULL, 0, 0, orientation, model->orientation );
                 }
 
                 // Interval of the reference
