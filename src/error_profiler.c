@@ -23,6 +23,8 @@
 #include "tandem.h"
 #include "translate_notation.h"
 
+#define MAX_INSERT_SIZE 8192
+
 // Init kseq structure
 KSEQ_INIT ( gzFile, gzread );
 
@@ -109,8 +111,10 @@ int main ( int argc, char ** argv ) {
     allele_t ** allele;
     bool last = false;
     // Tandem repeats
-    int tandem = 0;
+    int tandem = 10;
     tandem_set_t ** trs;
+    // Insert size granularity
+    int size_granularity = 0;
     // BAM
     htsFile * fp;
     bam_hdr_t * hdr;
@@ -132,6 +136,9 @@ int main ( int argc, char ** argv ) {
     char * read = NULL;
     int pos;
     int len;
+    uint8_t * read_seq;
+    uint8_t * qual;
+    int insert_size;
     int flank_1;
     int flank_2;
     int start;
@@ -143,7 +150,7 @@ int main ( int argc, char ** argv ) {
     int min_start = 0;
     int min_index = 0;
 
-    while ( ( opt = getopt ( argc, argv, "svt:d:" ) ) != -1 ) {
+    while ( ( opt = getopt ( argc, argv, "svi:t:d:" ) ) != -1 ) {
         switch ( opt ) {
         case 's':
             silent = true;
@@ -153,6 +160,9 @@ int main ( int argc, char ** argv ) {
             break;
         case 't':
             tandem = atoi ( optarg );
+            break;
+        case 'i':
+            size_granularity = atoi ( optarg );
             break;
         case 'd':
             dictionary = optarg;
@@ -226,7 +236,7 @@ int main ( int argc, char ** argv ) {
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
 
-    model = model_init ( tandem );
+    model = model_init ( tandem, size_granularity );
 
     // While there are sequences to read in the FASTA file
     while ( ! last ) {
@@ -265,28 +275,28 @@ int main ( int argc, char ** argv ) {
         itr = bam_itr_querys ( index, hdr, alias );
         if ( itr != NULL ) {
             while ( bam_itr_next ( fp, itr, line ) > 0 ) {
-                // Paired end
-                if ( line->core.flag == 99 || line->core.flag == 163 ) {
-                    curr_stats = model->pair;
-                } 
-                else if ( line->core.flag == 147 || line->core.flag == 83 ){
-                    curr_stats = model->single;
+                if ( ( line->core.flag & 1 ) && ( line->core.flag & 2 ) ){
+                  // Read information
+                  pos = line->core.pos;
+                  len = line->core.l_qseq;
+                  read_seq = bam_get_seq ( line ); // Read nucleotides
+                  qual = bam_get_qual ( line ); // Quality score
+                  curr_stats = ( line->core.flag & 64 ) ? model->single : model->pair;
+                  curr_stats = ( line->core.flag & 128 ) ? model->pair : model->single;
                 }
                 else{
                     continue;
                 }
 
-                // Read information
-                pos = line->core.pos;
-                len = line->core.l_qseq;
-                uint8_t * read_seq = bam_get_seq ( line ); // Read nucleotides
-                uint8_t * qual = bam_get_qual ( line ); // Quality score
-
                 // Insert size
-                if ( line->core.tid == line->core.mtid && line->core.mpos > pos ){
-                    update_insert_size ( line->core.mpos - pos - len, model );
+                if ( curr_stats == model->single && line->core.tid == line->core.mtid ) {
+                  insert_size = line->core.mpos - ( pos + len );
+                  insert_size = ( insert_size < 0 ) ? -insert_size : insert_size;
+                  insert_size = ( insert_size < MAX_INSERT_SIZE ) ? insert_size : MAX_INSERT_SIZE; 
+                  insert_size = ( insert_size * size_granularity ) / MAX_INSERT_SIZE;
+                  source_update ( NULL, 0, 0, insert_size, model->insert_size );
                 }
-                
+
                 // Interval of the reference
                 flank_1 = floor ( log ( 2 * len ) / log ( 2 ) );
                 flank_2 = flank_1;
