@@ -136,6 +136,9 @@ int main ( int argc, char ** argv ) {
     char * read = NULL;
     int pos;
     int len;
+    uint8_t * read_seq;
+    uint8_t * qual;
+    int insert_size;
     int flank_1;
     int flank_2;
     int start;
@@ -233,7 +236,7 @@ int main ( int argc, char ** argv ) {
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
 
-    model = model_init ( tandem, MAX_INSERT_SIZE/size_granularity );
+    model = model_init ( tandem, size_granularity );
 
     // While there are sequences to read in the FASTA file
     while ( ! last ) {
@@ -272,31 +275,28 @@ int main ( int argc, char ** argv ) {
         itr = bam_itr_querys ( index, hdr, alias );
         if ( itr != NULL ) {
             while ( bam_itr_next ( fp, itr, line ) > 0 ) {
-                // Paired end
-                if ( line->core.flag == 99 || line->core.flag == 163 ) {
-                    curr_stats = model->pair;
-                } 
-                else if ( line->core.flag == 147 || line->core.flag == 83 ){
-                    curr_stats = model->single;
+                if ( ( line->core.flag & 1 ) && ( line->core.flag & 2 ) ){
+                  // Read information
+                  pos = line->core.pos;
+                  len = line->core.l_qseq;
+                  read_seq = bam_get_seq ( line ); // Read nucleotides
+                  qual = bam_get_qual ( line ); // Quality score
+                  curr_stats = ( line->core.flag & 64 ) ? model->single : model->pair;
+                  curr_stats = ( line->core.flag & 128 ) ? model->pair : model->single;
                 }
                 else{
                     continue;
                 }
 
-                // Read information
-                pos = line->core.pos;
-                len = line->core.l_qseq;
-                uint8_t * read_seq = bam_get_seq ( line ); // Read nucleotides
-                uint8_t * qual = bam_get_qual ( line ); // Quality score
-
                 // Insert size
-                int insert_size = line->core.mpos - pos - len;
-                insert_size = insert_size % size_granularity;
-                insert_size = ( insert_size < MAX_INSERT_SIZE ) ? insert_size : MAX_INSERT_SIZE;
-                if ( line->core.tid == line->core.mtid && line->core.mpos > pos ){
-                    source_update ( NULL, 0, 0, insert_size, model->insert_size );
+                if ( curr_stats == model->single && line->core.tid == line->core.mtid ) {
+                  insert_size = line->core.mpos - ( pos + len );
+                  insert_size = ( insert_size < 0 ) ? -insert_size : insert_size;
+                  insert_size = ( insert_size < MAX_INSERT_SIZE ) ? insert_size : MAX_INSERT_SIZE; 
+                  insert_size = ( insert_size * size_granularity ) / MAX_INSERT_SIZE;
+                  source_update ( NULL, 0, 0, insert_size, model->insert_size );
                 }
-                
+
                 // Interval of the reference
                 flank_1 = floor ( log ( 2 * len ) / log ( 2 ) );
                 flank_2 = flank_1;
