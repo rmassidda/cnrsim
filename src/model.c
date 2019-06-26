@@ -13,14 +13,15 @@
 #include "stats.h"
 #include "model.h"
 
-model_t * model_init ( int max_repetition, int max_insert_size ){
+model_t * model_init ( int max_repetition, int max_insert_size, int size_granularity ){
     model_t * model = malloc ( sizeof ( model_t ) );
     if ( model == NULL ) return model;
 
     model->single = stats_init ();
     model->pair = stats_init ();
     model->amplification = source_init ( max_repetition, max_repetition, 1, 0 );
-    model->insert_size = source_init ( 1, max_insert_size, 0, 0 );
+    model->max_insert_size = max_insert_size;
+    model->insert_size = source_init ( 1, size_granularity, 0, 0 );
     model->orientation = source_init ( 1, 4, 0, 0 );
 
     return model;
@@ -127,6 +128,9 @@ void model_destroy ( model_t * model ){
 }
 
 void model_dump ( FILE * file, model_t * model ){
+    fprintf ( file, "#max_repetition %d\n", model->amplification->omega );
+    fprintf ( file, "#max_insert_size %d\n", model->max_insert_size );
+    fprintf ( file, "#size_granularity %d\n", model->insert_size->omega );
     fprintf ( file, "#single\n" );
     stats_dump ( file, model->single );
     fprintf ( file, "#pair\n" );

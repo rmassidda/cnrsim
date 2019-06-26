@@ -23,8 +23,6 @@
 #include "tandem.h"
 #include "translate_notation.h"
 
-#define MAX_INSERT_SIZE 8192
-
 // Init kseq structure
 KSEQ_INIT ( gzFile, gzread );
 
@@ -139,6 +137,7 @@ int main ( int argc, char ** argv ) {
     uint8_t * read_seq;
     uint8_t * qual;
     int insert_size;
+    int max_insert_size = 4096;
     int orientation;
     int flank_1;
     int flank_2;
@@ -151,7 +150,7 @@ int main ( int argc, char ** argv ) {
     int min_start = 0;
     int min_index = 0;
 
-    while ( ( opt = getopt ( argc, argv, "svi:t:d:" ) ) != -1 ) {
+    while ( ( opt = getopt ( argc, argv, "svm:i:t:d:" ) ) != -1 ) {
         switch ( opt ) {
         case 's':
             silent = true;
@@ -165,11 +164,14 @@ int main ( int argc, char ** argv ) {
         case 'i':
             size_granularity = atoi ( optarg );
             break;
+        case 'm':
+            max_insert_size = atoi ( optarg );
+            break;
         case 'd':
             dictionary = optarg;
             break;
         case '?':
-            if ( optopt == 'd' )
+            if ( optopt == 'd' || optopt == 'm' || optopt == 'i' || optopt == 't' )
                 fprintf ( stderr, "Option -%c requires an argument.\n", optopt );
             else if ( isprint ( optopt ) )
                 fprintf ( stderr, "Unknown option `-%c'.\n", optopt );
@@ -237,7 +239,7 @@ int main ( int argc, char ** argv ) {
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
 
-    model = model_init ( tandem, size_granularity );
+    model = model_init ( tandem, max_insert_size, size_granularity );
 
     // While there are sequences to read in the FASTA file
     while ( ! last ) {
@@ -292,8 +294,8 @@ int main ( int argc, char ** argv ) {
                 if ( curr_stats == model->single && line->core.tid == line->core.mtid ) {
                   insert_size = line->core.mpos - ( pos + len );
                   insert_size = ( insert_size < 0 ) ? -insert_size : insert_size;
-                  insert_size = ( insert_size < MAX_INSERT_SIZE ) ? insert_size : MAX_INSERT_SIZE; 
-                  insert_size = ( insert_size * size_granularity ) / MAX_INSERT_SIZE;
+                  insert_size = ( insert_size < max_insert_size ) ? insert_size : max_insert_size; 
+                  insert_size = ( insert_size * size_granularity ) / max_insert_size;
                   source_update ( NULL, 0, 0, insert_size, model->insert_size );
                   orientation = ( line->core.flag & 48 ) >> 4;
                   source_update ( NULL, 0, 0, orientation, model->orientation );
