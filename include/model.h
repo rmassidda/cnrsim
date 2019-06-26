@@ -37,7 +37,7 @@ model_t * model_init ( int max_repetition, int max_insert_size, int size_granula
  *
  * @ret initialized structure, NULL if error
  */
-model_t * model_parse ( FILE * file, model_t * model );
+model_t * model_parse ( FILE * file );
 
 /*
  * Frees the memory
