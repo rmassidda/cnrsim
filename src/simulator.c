@@ -52,8 +52,7 @@ int main ( int argc, char ** argv ) {
     }
 
     // Init model
-    model = model_init ( 1024 );
-    model = model_parse ( model_fp, model );
+    model = model_parse ( model_fp );
     fclose ( model_fp );
 
     // Input sequences
@@ -72,7 +71,8 @@ int main ( int argc, char ** argv ) {
         seq[i] = kseq_init ( fp[i] );
     }
 
-    for ( int i = 0; i < ploidy; i ++ ){
+    // TODO: simulation
+    for ( int i = 0; i < ploidy && false; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
             int j = 0;
             while ( j < seq[i]->seq.l ){
@@ -82,16 +82,6 @@ int main ( int argc, char ** argv ) {
                     printf ( "%s\n", generated->read );
                     printf ( "+\n" );
                     printf ( "%s\n\n", generated->quality );
-                }
-                // Generate pair
-                if ( j + model->insert_size < seq[i]->seq.l ){
-                    generated = stats_generate_read ( &seq[i]->seq.s[j+model->insert_size], generated, model->pair );
-                    if ( ! generated->cut ){
-                        printf ( ">%s %d\n", seq[i]->name.s, j + model->insert_size );
-                        printf ( "%s\n", generated->read );
-                        printf ( "+\n" );
-                        printf ( "%s\n\n", generated->quality );
-                    }
                 }
                 // TODO: arbitrary value, this is only for testing
                 j += 20;

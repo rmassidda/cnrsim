@@ -13,41 +13,58 @@
 #include "stats.h"
 #include "model.h"
 
-model_t * model_init ( int max_repetition, int max_insert_size ){
+model_t * model_init ( int max_repetition, int max_insert_size, int size_granularity ){
     model_t * model = malloc ( sizeof ( model_t ) );
     if ( model == NULL ) return model;
 
     model->single = stats_init ();
     model->pair = stats_init ();
     model->amplification = source_init ( max_repetition, max_repetition, 1, 0 );
-    model->insert_size = source_init ( 1, max_insert_size, 0, 0 );
+    model->max_insert_size = max_insert_size;
+    model->insert_size = source_init ( 1, size_granularity, 0, 0 );
     model->orientation = source_init ( 1, 4, 0, 0 );
 
     return model;
 }
 
-model_t * model_parse ( FILE * file, model_t * model ){
-    // Parsing
+model_t * model_parse ( FILE * file ){
+    // Read line
+    char * line = NULL;
     size_t len = 0;
     ssize_t read = 0;
-    char * line = NULL;
     int n_line = 0;
-    double w;
+    char * token;
+    // Pointer to the working data
+    model_t * model = NULL;
     stats_t * curr_end = NULL;
     source_t * curr_source = NULL;
-    char * token;
+    int max_repetition = 0;
+    int max_insert_size = 0;
+    int size_granularity = 0;
 
     // Model Parsing
-    curr_end = model->single;
     while ( ( read = getline ( &line, &len, file ) ) != -1 ) {
         // Remove new line
         line[read - 1] = '\0';
         // Parse first token
         token = strtok ( line, " " );    
 
-        // Start of new stats
-        if ( token[0] == '#' ){
-            // Read end
+        if ( token[0] == '$' ){
+            strtok ( NULL, " " );
+            if ( strcmp ( token, "#max_repetition" ) == 0 ){
+                max_repetition = atoi ( token );
+            }
+            else if ( strcmp ( token, "#max_insert_size" ) == 0 ){
+                max_insert_size = atoi ( token );
+            }
+            else if ( strcmp ( token, "#size_granularity" ) == 0 ){
+                size_granularity = atoi ( token );
+            }
+        }
+        else if ( token[0] == '#' ){
+            if ( model == NULL ) {
+                model = model_init ( max_repetition, max_insert_size, size_granularity );
+            }
             if ( strcmp ( token, "#single" ) == 0 ){
                 curr_end = model->single;
             }
@@ -75,34 +92,36 @@ model_t * model_parse ( FILE * file, model_t * model ){
             else if ( strcmp ( token, "@tandem" ) == 0 ){
                 curr_source = model->amplification;
             }
+            else if ( strcmp ( token, "@insert_size" ) == 0 ){
+                curr_source = model->insert_size;
+            }
+            else if ( strcmp ( token, "@orientation" ) == 0 ){
+                curr_source = model->orientation;
+            }
             else{
-                printf ( "%s, not parsable.\n", token );
+                fprintf ( stderr, "%s not parsable.\n", token );
                 exit ( EXIT_FAILURE );
             }
             // Get length
             token = strtok ( NULL, " " );    
             curr_source->n = atoi ( token );
-            // Allocate matrix
-            curr_source->normalized = malloc ( sizeof ( unsigned long * ) * curr_source->n );
-            curr_source->raw = malloc ( sizeof ( double * ) * curr_source->n );
+            // Pre-allocate matrixes
+            curr_source->normalized = malloc ( sizeof ( double * ) * curr_source->n );
+            curr_source->raw = malloc ( sizeof ( unsigned long * ) * curr_source->n );
             for ( int i = 0; i < curr_source->n; i ++ ) {
-                curr_source->raw[i] = NULL;
-                curr_source->normalized[i] = malloc ( 
-                        curr_source->omega * curr_source->prefix * sizeof ( double )
+                curr_source->normalized[i] = NULL;
+                curr_source->raw[i] = malloc ( 
+                        curr_source->omega * curr_source->prefix * sizeof ( unsigned long )
                         );
             }
             n_line = 0;
         }
         // Load data
         else{
-            w = atof ( token );
             for ( int i = 0; i < curr_source->prefix; i ++ ) {
                 for ( int j = 0; j < curr_source->omega; j ++ ) {
-                    curr_source->normalized[n_line][ i * curr_source->omega + j] = w;
+                    curr_source->raw[n_line][ i * curr_source->omega + j] = strtoul ( token, NULL, 10 );
                     token = strtok ( NULL, " " );    
-                    if ( token != NULL ) {
-                        w = atof ( token );
-                    }
                 }
             }
             n_line ++;
@@ -127,6 +146,9 @@ void model_destroy ( model_t * model ){
 }
 
 void model_dump ( FILE * file, model_t * model ){
+    fprintf ( file, "$max_repetition %d\n", model->amplification->omega );
+    fprintf ( file, "$max_insert_size %d\n", model->max_insert_size );
+    fprintf ( file, "$size_granularity %d\n", model->insert_size->omega );
     fprintf ( file, "#single\n" );
     stats_dump ( file, model->single );
     fprintf ( file, "#pair\n" );

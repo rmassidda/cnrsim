@@ -179,16 +179,12 @@ unsigned char * source_generate_word ( unsigned char * w, int * size, source_t *
 }
 
 void source_dump ( FILE * file, char * source_name, source_t * source ) {
-    if ( source->normalized == NULL ) {
-        __normalize ( source );
-    }
-
     fprintf ( file, "@%s %d %d %d\n", source_name, source->n, source->prefix, source->omega );
 
     for ( int i = 0; i < source->n; i ++ ) {
         for ( int j = 0; j < source->prefix; j ++ ) {
             for ( int z = 0; z < ( int ) source->omega; z ++ ) {
-                fprintf ( file, "%.5f ", source->normalized[i][j * source->omega + z] );
+                fprintf ( file, "%lu ", source->raw[i][j * source->omega + z] );
             }
         }
         fprintf ( file, "\n" );
