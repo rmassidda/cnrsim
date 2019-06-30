@@ -15,6 +15,7 @@
 #include "model.h"
 #include "stats.h"
 #include "source.h"
+#include "tandem.h"
 
 // Init kseq structure
 KSEQ_INIT ( gzFile, gzread );
@@ -35,6 +36,7 @@ int main ( int argc, char ** argv ) {
     // FASTA
     gzFile * fp;
     kseq_t ** seq;
+    tandem_set_t * tandem = NULL;
 
     // Non optional arguments
     if ( argc - optind < 2 ) {
@@ -74,6 +76,9 @@ int main ( int argc, char ** argv ) {
     // TODO: simulation
     for ( int i = 0; i < ploidy && false; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
+            tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
+            tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
+
             int j = 0;
             while ( j < seq[i]->seq.l ){
                 generated = stats_generate_read ( &seq[i]->seq.s[j], generated, model->single );
