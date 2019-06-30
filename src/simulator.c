@@ -12,6 +12,7 @@
 #include <zlib.h>
 #include <htslib/sam.h>
 #include <htslib/kseq.h>
+#include <time.h>
 #include "model.h"
 #include "stats.h"
 #include "source.h"
@@ -43,8 +44,8 @@ int main ( int argc, char ** argv ) {
     int coverage;
     int sequenced;
     // Generation
-    int insert_size;
-    int orientation;
+    int insert_size = 0;
+    int orientation = 0;
     stats_t * curr_end;
 
     // Non optional arguments
@@ -85,7 +86,10 @@ int main ( int argc, char ** argv ) {
         seq[i] = kseq_init ( fp[i] );
     }
 
-    // TODO: simulation
+    // Init pseudorandom generator
+    srand ( time ( NULL ) );
+
+    // Simulated read generation
     for ( int i = 0; i < ploidy; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
             // Analysis of the repetitions in the original sequence
@@ -145,8 +149,12 @@ int main ( int argc, char ** argv ) {
               while ( pos < seq[i]->seq.l ){
                 if ( curr_end == model->single ) {
                   // Two bits: ++,+-,-+,--
-                  orientation = 0;
-                  insert_size = 0;
+                  orientation = source_generate ( NULL, 0, 0, model->orientation );
+                  insert_size = source_generate ( NULL, 0, 0, model->insert_size );
+                  int lo_bound = insert_size * model->size_granularity;
+                  int up_bound = ( insert_size + 1 ) * model->size_granularity;
+                  insert_size = rand () % ( up_bound - lo_bound + 1 );
+                  insert_size += lo_bound;
                 }
                 int reverse = ( curr_end == model->single ) ? ( orientation & 2 ) : ( orientation & 1 );
                 char reverse_char = ( reverse ) ? '-' : '+';
@@ -159,13 +167,13 @@ int main ( int argc, char ** argv ) {
                 printf ( "@%s %d %c\n", seq[i]->name.s, pos, reverse_char );
                 if ( reverse ) {
                   int swap;
-                  for ( int i = 0; i < (length/2); i ++ ) {
-                    swap = generated->read[i];
-                    generated->read[i] = generated->read[length-i-1];
-                    generated->read[length-i-1] = swap;
-                    swap = generated->quality[i];
-                    generated->quality[i] = generated->quality[length-i-1];
-                    generated->quality[length-i-1] = swap;
+                  for ( int j = 0; j < (length/2); j ++ ) {
+                    swap = generated->read[j];
+                    generated->read[j] = generated->read[length-j-1];
+                    generated->read[length-j-1] = swap;
+                    swap = generated->quality[j];
+                    generated->quality[j] = generated->quality[length-j-1];
+                    generated->quality[length-j-1] = swap;
                   }
                 }
                 printf ( "%s\n", generated->read );
@@ -174,6 +182,9 @@ int main ( int argc, char ** argv ) {
                 if ( curr_end == model->pair ) {
                   curr_end = model->single;
                   insert_size = 0;
+                }
+                else if ( insert_size != 0 ) {
+                  curr_end = model->pair;
                 }
                 pos += ( insert_size + length );
                 sequenced += length;
