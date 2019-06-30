@@ -127,10 +127,9 @@ model_t * model_parse ( FILE * file ){
             token = strtok ( NULL, " " );    
             curr_source->n = atoi ( token );
             // Pre-allocate matrixes
-            curr_source->normalized = malloc ( sizeof ( double * ) * curr_source->n );
+            curr_source->normalized = NULL;
             curr_source->raw = malloc ( sizeof ( unsigned long * ) * curr_source->n );
             for ( int i = 0; i < curr_source->n; i ++ ) {
-                curr_source->normalized[i] = NULL;
                 curr_source->raw[i] = malloc ( 
                         curr_source->omega * curr_source->prefix * sizeof ( unsigned long )
                         );
