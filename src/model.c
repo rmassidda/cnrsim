@@ -13,14 +13,17 @@
 #include "stats.h"
 #include "model.h"
 
-model_t * model_init ( int max_repetition, int max_insert_size, int size_granularity ){
+model_t * model_init ( int max_motif, int max_repetition, int max_insert_size, int size_granularity ){
     model_t * model = malloc ( sizeof ( model_t ) );
     if ( model == NULL ) return model;
 
+    model->max_motif = max_motif;
+    model->max_repetition = max_repetition;
+    model->size_granularity = size_granularity;
+    model->max_insert_size = max_insert_size;
     model->single = stats_init ();
     model->pair = stats_init ();
     model->amplification = source_init ( max_repetition, max_repetition, 1, 0 );
-    model->max_insert_size = max_insert_size;
     model->insert_size = source_init ( 1, size_granularity, 0, 0 );
     model->orientation = source_init ( 1, 4, 0, 0 );
 
@@ -40,6 +43,7 @@ model_t * model_parse ( FILE * file ){
     source_t * curr_source = NULL;
     int max_repetition = 0;
     int max_insert_size = 0;
+    int max_motif = 0;
     int size_granularity = 0;
 
     // Model Parsing
@@ -48,22 +52,35 @@ model_t * model_parse ( FILE * file ){
         line[read - 1] = '\0';
         // Parse first token
         token = strtok ( line, " " );    
+        if ( token == NULL ) {
+          continue;
+        }
 
         if ( token[0] == '$' ){
-            strtok ( NULL, " " );
-            if ( strcmp ( token, "#max_repetition" ) == 0 ){
+            if ( strcmp ( token, "$max_repetition" ) == 0 ){
+                token = strtok ( NULL, " " );
                 max_repetition = atoi ( token );
             }
-            else if ( strcmp ( token, "#max_insert_size" ) == 0 ){
+            else if ( strcmp ( token, "$max_insert_size" ) == 0 ){
+                token = strtok ( NULL, " " );
                 max_insert_size = atoi ( token );
             }
-            else if ( strcmp ( token, "#size_granularity" ) == 0 ){
+            else if ( strcmp ( token, "$size_granularity" ) == 0 ){
+                token = strtok ( NULL, " " );
                 size_granularity = atoi ( token );
+            }
+            else if ( strcmp ( token, "$max_motif" ) == 0 ){
+                token = strtok ( NULL, " " );
+                max_motif = atoi ( token );
+            }
+            else{
+                fprintf ( stderr, "%s not parsable.\n", token );
+                exit ( EXIT_FAILURE );
             }
         }
         else if ( token[0] == '#' ){
             if ( model == NULL ) {
-                model = model_init ( max_repetition, max_insert_size, size_granularity );
+                model = model_init ( max_motif, max_repetition, max_insert_size, size_granularity );
             }
             if ( strcmp ( token, "#single" ) == 0 ){
                 curr_end = model->single;
@@ -73,6 +90,10 @@ model_t * model_parse ( FILE * file ){
             }
             else if ( strcmp ( token, "#amplification" ) == 0 ){
                 curr_end = NULL;
+            }
+            else{
+                fprintf ( stderr, "%s not parsable.\n", token );
+                exit ( EXIT_FAILURE );
             }
         }
         else if ( token[0] == '@' ){
@@ -106,10 +127,9 @@ model_t * model_parse ( FILE * file ){
             token = strtok ( NULL, " " );    
             curr_source->n = atoi ( token );
             // Pre-allocate matrixes
-            curr_source->normalized = malloc ( sizeof ( double * ) * curr_source->n );
+            curr_source->normalized = NULL;
             curr_source->raw = malloc ( sizeof ( unsigned long * ) * curr_source->n );
             for ( int i = 0; i < curr_source->n; i ++ ) {
-                curr_source->normalized[i] = NULL;
                 curr_source->raw[i] = malloc ( 
                         curr_source->omega * curr_source->prefix * sizeof ( unsigned long )
                         );
@@ -146,9 +166,10 @@ void model_destroy ( model_t * model ){
 }
 
 void model_dump ( FILE * file, model_t * model ){
-    fprintf ( file, "$max_repetition %d\n", model->amplification->omega );
     fprintf ( file, "$max_insert_size %d\n", model->max_insert_size );
-    fprintf ( file, "$size_granularity %d\n", model->insert_size->omega );
+    fprintf ( file, "$max_repetition %d\n", model->max_repetition );
+    fprintf ( file, "$max_motif %d\n", model->max_motif );
+    fprintf ( file, "$size_granularity %d\n", model->size_granularity );
     fprintf ( file, "#single\n" );
     stats_dump ( file, model->single );
     fprintf ( file, "#pair\n" );

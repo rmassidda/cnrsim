@@ -23,6 +23,8 @@
 #include "tandem.h"
 #include "translate_notation.h"
 
+#define MAX_MOTIF 6
+
 // Init kseq structure
 KSEQ_INIT ( gzFile, gzread );
 
@@ -239,7 +241,7 @@ int main ( int argc, char ** argv ) {
     // Edlib configuration
     config = edlibNewAlignConfig ( -1, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities, 4 );
 
-    model = model_init ( tandem, max_insert_size, size_granularity );
+    model = model_init ( MAX_MOTIF, tandem, max_insert_size, size_granularity );
 
     // While there are sequences to read in the FASTA file
     while ( ! last ) {
@@ -257,7 +259,7 @@ int main ( int argc, char ** argv ) {
                         allele[i]
                         );
                 if ( tandem != 0 ) {
-                    trs[i] = tandem_set_init ( seq[i]->seq.l, 6, tandem, trs[i] );
+                    trs[i] = tandem_set_init ( seq[i]->seq.l, model->max_motif, tandem, trs[i] );
                     trs[i] = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, trs[i] );
                 }
             }

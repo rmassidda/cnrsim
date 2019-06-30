@@ -20,9 +20,12 @@ struct model_t {
     stats_t * single;
     stats_t * pair;
     source_t * amplification;
-    int max_insert_size;
     source_t * insert_size;
     source_t * orientation;
+    int max_motif;
+    int max_repetition;
+    int max_insert_size;
+    int size_granularity;
 };
 
 /*
@@ -30,7 +33,7 @@ struct model_t {
  *
  * @ret initialized structure, NULL if error
  */
-model_t * model_init ( int max_repetition, int max_insert_size, int size_granularity );
+model_t * model_init ( int max_motif, int max_repetition, int max_insert_size, int size_granularity );
 
 /*
  * Initalize the model from a file
