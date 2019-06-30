@@ -111,10 +111,10 @@ int main ( int argc, char ** argv ) {
     allele_t ** allele;
     bool last = false;
     // Tandem repeats
-    int tandem = 10;
+    int tandem = 16;
     tandem_set_t ** trs;
     // Insert size granularity
-    int size_granularity = 0;
+    int size_granularity = 1024;
     // BAM
     htsFile * fp;
     bam_hdr_t * hdr;
