@@ -134,6 +134,12 @@ int main ( int argc, char ** argv ) {
               seq_p += ( tandem->set[t].rep * tandem->set[t].pat );
               aseq_p += ( rep * tandem->set[t].pat );
             }
+            // Copy of the remaining sequence
+            memcpy (
+                &amplified_seq[aseq_p],
+                &seq[i]->seq.s[seq_p],
+                sizeof ( char ) * ( seq[i]->seq.l - seq_p ) );
+            aseq_p += ( seq[i]->seq.l - seq_p );
             amplified_seq[aseq_p] = '\0';
             fprintf ( stderr, "original sequence:\t%d\n", seq_p );
             fprintf ( stderr, "amplified sequence:\t%d\n", aseq_p );
