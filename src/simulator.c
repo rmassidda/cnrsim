@@ -157,8 +157,8 @@ int main ( int argc, char ** argv ) {
                   // Two bits: ++,+-,-+,--
                   orientation = source_generate ( NULL, 0, 0, model->orientation );
                   insert_size = source_generate ( NULL, 0, 0, model->insert_size );
-                  int lo_bound = insert_size * model->size_granularity;
-                  int up_bound = ( insert_size + 1 ) * model->size_granularity;
+                  int lo_bound = insert_size * ( model->max_insert_size / model->size_granularity );
+                  int up_bound = ( insert_size + 1 ) * ( model->max_insert_size / model->size_granularity );
                   insert_size = rand () % ( up_bound - lo_bound + 1 );
                   insert_size += lo_bound;
                 }
