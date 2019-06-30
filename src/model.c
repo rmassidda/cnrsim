@@ -57,17 +57,20 @@ model_t * model_parse ( FILE * file ){
         }
 
         if ( token[0] == '$' ){
-            strtok ( NULL, " " );
             if ( strcmp ( token, "$max_repetition" ) == 0 ){
+                token = strtok ( NULL, " " );
                 max_repetition = atoi ( token );
             }
             else if ( strcmp ( token, "$max_insert_size" ) == 0 ){
+                token = strtok ( NULL, " " );
                 max_insert_size = atoi ( token );
             }
             else if ( strcmp ( token, "$size_granularity" ) == 0 ){
+                token = strtok ( NULL, " " );
                 size_granularity = atoi ( token );
             }
             else if ( strcmp ( token, "$max_motif" ) == 0 ){
+                token = strtok ( NULL, " " );
                 max_motif = atoi ( token );
             }
             else{
