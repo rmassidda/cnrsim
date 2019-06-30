@@ -21,7 +21,7 @@
 KSEQ_INIT ( gzFile, gzread );
 
 void usage ( char * name ) {
-    fprintf ( stderr, "Usage: %s error_model fastq [fastq ...]\n", name );
+    fprintf ( stderr, "Usage: %s coverage error_model fastq [fastq ...]\n", name );
 }
 
 int main ( int argc, char ** argv ) {
@@ -36,14 +36,25 @@ int main ( int argc, char ** argv ) {
     // FASTA
     gzFile * fp;
     kseq_t ** seq;
+    // Amplification
     char * amplified_seq = NULL;
     tandem_set_t * tandem = NULL;
+    // Coverage
+    int coverage;
+    int sequenced;
+    // Generation
+    int insert_size;
+    int orientation;
+    stats_t * curr_end;
 
     // Non optional arguments
-    if ( argc - optind < 2 ) {
+    if ( argc - optind < 3 ) {
         usage ( argv[0] );
         exit ( EXIT_FAILURE );
     }
+
+    // Coverage
+    coverage = atoi ( argv[optind++] );
 
     // Error Model
     model_name = argv[optind++];
@@ -125,17 +136,48 @@ int main ( int argc, char ** argv ) {
             fprintf ( stderr, "amplification:\t\t%d\t%.3f\n", amp, (amp*100.0/(amp+deamp)) );
             fprintf ( stderr, "deamplification:\t%d\t%.3f\n", deamp, (deamp*100.0/(amp+deamp)) );
 
-            int j = 0;
-            while ( j < seq[i]->seq.l && false ){
-                generated = stats_generate_read ( &seq[i]->seq.s[j], generated, model->single );
-                if ( ! generated->cut ){
-                    printf ( ">%s %d\n", seq[i]->name.s, j );
-                    printf ( "%s\n", generated->read );
-                    printf ( "+\n" );
-                    printf ( "%s\n\n", generated->quality );
+            // Number of sequenced nucleotides
+            sequenced = 0;
+            // Reach the coverage
+            while ( coverage > ( sequenced / seq[i]->seq.l ) ) {
+              int pos = 0;
+              curr_end = model->single;
+              while ( pos < seq[i]->seq.l ){
+                if ( curr_end == model->single ) {
+                  // Two bits: ++,+-,-+,--
+                  orientation = 0;
+                  insert_size = 0;
                 }
-                // TODO: arbitrary value, this is only for testing
-                j += 20;
+                int reverse = ( curr_end == model->single ) ? ( orientation & 2 ) : ( orientation & 1 );
+                char reverse_char = ( reverse ) ? '-' : '+';
+                generated = stats_generate_read ( &seq[i]->seq.s[pos], generated, curr_end );
+                // The read reached the limit of the sequence
+                if ( generated->cut ) {
+                  break;
+                }
+                int length = strlen ( generated->read );
+                printf ( "@%s %d %c\n", seq[i]->name.s, pos, reverse_char );
+                if ( reverse ) {
+                  int swap;
+                  for ( int i = 0; i < (length/2); i ++ ) {
+                    swap = generated->read[i];
+                    generated->read[i] = generated->read[length-i-1];
+                    generated->read[length-i-1] = swap;
+                    swap = generated->quality[i];
+                    generated->quality[i] = generated->quality[length-i-1];
+                    generated->quality[length-i-1] = swap;
+                  }
+                }
+                printf ( "%s\n", generated->read );
+                printf ( "+\n" );
+                printf ( "%s\n\n", generated->quality );
+                if ( curr_end == model->pair ) {
+                  curr_end = model->single;
+                  insert_size = 0;
+                }
+                pos += ( insert_size + length );
+                sequenced += length;
+              }
             }
         }
     }
