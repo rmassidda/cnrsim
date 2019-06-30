@@ -149,10 +149,10 @@ int main ( int argc, char ** argv ) {
             // Number of sequenced nucleotides
             sequenced = 0;
             // Reach the coverage
-            while ( coverage > ( sequenced / seq[i]->seq.l ) ) {
+            while ( coverage > ( sequenced / aseq_p ) ) {
               int pos = 0;
               curr_end = model->single;
-              while ( pos < seq[i]->seq.l ){
+              while ( pos < aseq_p ){
                 if ( curr_end == model->single ) {
                   // Two bits: ++,+-,-+,--
                   orientation = source_generate ( NULL, 0, 0, model->orientation );
@@ -164,7 +164,7 @@ int main ( int argc, char ** argv ) {
                 }
                 int reverse = ( curr_end == model->single ) ? ( orientation & 2 ) : ( orientation & 1 );
                 char reverse_char = ( reverse ) ? '-' : '+';
-                generated = stats_generate_read ( &seq[i]->seq.s[pos], generated, curr_end );
+                generated = stats_generate_read ( &amplified_seq[pos], generated, curr_end );
                 // The read reached the limit of the sequence
                 if ( generated->cut ) {
                   break;
