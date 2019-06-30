@@ -86,6 +86,9 @@ int main ( int argc, char ** argv ) {
             int seq_p = 0;
             // Index for the amplified sequence
             int aseq_p = 0;
+            // Statistics
+            int amp = 0;
+            int deamp = 0;
             for ( int t = 0; t < tandem->n; t ++ ) {
               int gap = tandem->set[t].pos - seq_p;
               // Copy of the nucleotides between different tandems
@@ -101,13 +104,14 @@ int main ( int argc, char ** argv ) {
                 fprintf ( stderr, "The tandem set isn't ordered.\n" );
                 exit ( EXIT_FAILURE );
               }
-              // unsigned char in = tandem->set[t].rep;
-              // int rep = source_generate (
-              //     &in,
-              //     1,
-              //     tandem->set[t].pat,
-              //     model->amplification );
-              int rep = 1;
+              unsigned char in = tandem->set[t].rep;
+              unsigned char out = source_generate (
+                  &in,
+                  1,
+                  tandem->set[t].pat,
+                  model->amplification );
+              ( in < out ) ? ++amp : ++deamp;
+              int rep = out;
               memcpy (
                   &amplified_seq[aseq_p],
                   &seq[i]->seq.s[seq_p],
@@ -116,6 +120,10 @@ int main ( int argc, char ** argv ) {
               aseq_p += ( rep * tandem->set[t].pat );
             }
             amplified_seq[aseq_p] = '\0';
+            fprintf ( stderr, "original sequence:\t%d\n", seq_p );
+            fprintf ( stderr, "amplified sequence:\t%d\n", aseq_p );
+            fprintf ( stderr, "amplification:\t\t%d\t%.3f\n", amp, (amp*100.0/(amp+deamp)) );
+            fprintf ( stderr, "deamplification:\t%d\t%.3f\n", deamp, (deamp*100.0/(amp+deamp)) );
 
             int j = 0;
             while ( j < seq[i]->seq.l && false ){
