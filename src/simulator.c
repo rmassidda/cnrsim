@@ -51,6 +51,9 @@ int main ( int argc, char ** argv ) {
     int pos;
     stats_t * curr_end;
 
+    // Init pseudorandom generator
+    srand ( time ( NULL ) );
+
     // Non optional arguments
     if ( argc - optind < 3 ) {
         usage ( argv[0] );
@@ -88,9 +91,6 @@ int main ( int argc, char ** argv ) {
         }
         seq[i] = kseq_init ( fp[i] );
     }
-
-    // Init pseudorandom generator
-    srand ( time ( NULL ) );
 
     // Simulated read generation
     for ( int i = 0; i < ploidy; i ++ ){

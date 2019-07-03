@@ -133,7 +133,7 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
             ref ++;
             break;
         case 1:
-            read->read[pos] = 'I';
+            read->read[pos] = __nucleotide_rev ( rand () % 4 );
             i++;
             break;
         case 2:

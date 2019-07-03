@@ -17,6 +17,7 @@
 #include <zlib.h>
 #include <htslib/sam.h>
 #include <htslib/kseq.h>
+#include <time.h>
 #include "allele.h"
 #include "model.h"
 #include "stats.h"
@@ -151,6 +152,9 @@ int main ( int argc, char ** argv ) {
     int min_score;
     int min_start = 0;
     int min_index = 0;
+
+    // Init pseudorandom generator
+    srand ( time ( NULL ) );
 
     while ( ( opt = getopt ( argc, argv, "svm:i:t:d:" ) ) != -1 ) {
         switch ( opt ) {
