@@ -28,6 +28,7 @@ struct read_t {
     unsigned char * align;
     int alg_len;
     char * read;
+    int buffer_size;
     unsigned char * quality;
     bool cut;
 };

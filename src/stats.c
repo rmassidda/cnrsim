@@ -105,12 +105,21 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
     int pos = 0;
     unsigned char in, out;
 
+    // Check if the read is to be initialized
     if ( read == NULL ){
         read = malloc ( sizeof ( read_t ) );
-        read->align = NULL;
         read->alg_len = 0;
-        read->read = malloc ( sizeof ( char ) * stats->quality->n );
-        read->quality = malloc ( sizeof ( char ) * stats->quality->n );
+        read->buffer_size = 0;
+        read->align = NULL;
+        read->read = NULL;
+        read->quality = NULL;
+    }
+
+    // Check if read memory must be reallocated
+    if ( ( stats->quality->n + 1 ) > read->buffer_size ) {
+      read->read = realloc ( read->read, sizeof ( char ) *  ( stats->quality->n + 1 ) );
+      read->quality = realloc ( read->quality, sizeof ( char ) * ( stats->quality->n + 1 ) );
+      read->buffer_size = stats->quality->n + 1;
     }
 
     // Alignment generation
