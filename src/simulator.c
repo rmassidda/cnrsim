@@ -12,6 +12,7 @@
 #include <zlib.h>
 #include <htslib/sam.h>
 #include <htslib/kseq.h>
+#include <time.h>
 #include "model.h"
 #include "stats.h"
 #include "source.h"
@@ -21,7 +22,7 @@
 KSEQ_INIT ( gzFile, gzread );
 
 void usage ( char * name ) {
-    fprintf ( stderr, "Usage: %s error_model fastq [fastq ...]\n", name );
+    fprintf ( stderr, "Usage: %s coverage error_model fastq [fastq ...]\n", name );
 }
 
 int main ( int argc, char ** argv ) {
@@ -36,14 +37,28 @@ int main ( int argc, char ** argv ) {
     // FASTA
     gzFile * fp;
     kseq_t ** seq;
+    // Amplification
     char * amplified_seq = NULL;
     tandem_set_t * tandem = NULL;
+    // Coverage
+    int coverage;
+    int sequenced;
+    // Generation
+    int insert_size = 0;
+    int orientation = 0;
+    int length;
+    int reverse;
+    int pos;
+    stats_t * curr_end;
 
     // Non optional arguments
-    if ( argc - optind < 2 ) {
+    if ( argc - optind < 3 ) {
         usage ( argv[0] );
         exit ( EXIT_FAILURE );
     }
+
+    // Coverage
+    coverage = atoi ( argv[optind++] );
 
     // Error Model
     model_name = argv[optind++];
@@ -74,12 +89,15 @@ int main ( int argc, char ** argv ) {
         seq[i] = kseq_init ( fp[i] );
     }
 
-    // TODO: simulation
+    // Init pseudorandom generator
+    srand ( time ( NULL ) );
+
+    // Simulated read generation
     for ( int i = 0; i < ploidy; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
             // Analysis of the repetitions in the original sequence
             tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
-            tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
+            //tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
             amplified_seq = realloc ( amplified_seq, sizeof ( char ) * ( seq[i]->seq.l * 2 ) );
 
             // Index for the FASTA sequence
@@ -119,24 +137,81 @@ int main ( int argc, char ** argv ) {
               seq_p += ( tandem->set[t].rep * tandem->set[t].pat );
               aseq_p += ( rep * tandem->set[t].pat );
             }
+            // Copy of the remaining sequence
+            memcpy (
+                &amplified_seq[aseq_p],
+                &seq[i]->seq.s[seq_p],
+                sizeof ( char ) * ( seq[i]->seq.l - seq_p ) );
+            aseq_p += ( seq[i]->seq.l - seq_p );
+            seq_p = seq[i]->seq.l;
             amplified_seq[aseq_p] = '\0';
-            fprintf ( stderr, "original sequence:\t%d\n", seq_p );
-            fprintf ( stderr, "amplified sequence:\t%d\n", aseq_p );
-            fprintf ( stderr, "amplification:\t\t%d\t%.3f\n", amp, (amp*100.0/(amp+deamp)) );
-            fprintf ( stderr, "deamplification:\t%d\t%.3f\n", deamp, (deamp*100.0/(amp+deamp)) );
+            fprintf ( stderr, "%s\n", seq[i]->name.s );
+            fprintf ( stderr, "\t(amplified):\t%d\t%d\t%.3f\n", aseq_p, seq_p, (aseq_p*100.0/seq_p));
 
-            int j = 0;
-            while ( j < seq[i]->seq.l && false ){
-                generated = stats_generate_read ( &seq[i]->seq.s[j], generated, model->single );
-                if ( ! generated->cut ){
-                    printf ( ">%s %d\n", seq[i]->name.s, j );
-                    printf ( "%s\n", generated->read );
-                    printf ( "+\n" );
-                    printf ( "%s\n\n", generated->quality );
+            // Initial conditions
+            sequenced = 0;
+            pos = 0;
+            curr_end = model->single;
+
+            // Reach the coverage
+            while ( coverage > ( sequenced / aseq_p ) ) {
+              if ( curr_end == model->single ) {
+                // Two bits: ++,+-,-+,--
+                orientation = source_generate ( NULL, 0, 0, model->orientation );
+                // Not sequenced nucleotides between pairs
+                insert_size = source_generate ( NULL, 0, 0, model->insert_size );
+                int lo_bound = insert_size * ( model->max_insert_size / model->size_granularity );
+                int up_bound = ( insert_size + 1 ) * ( model->max_insert_size / model->size_granularity );
+                insert_size = rand () % ( up_bound - lo_bound + 1 );
+                insert_size += lo_bound;
+              }
+              else {
+                // There is no insert size after mate pair
+                insert_size = 0;
+              }
+
+              // Generate new read
+              generated = stats_generate_read ( &amplified_seq[pos], generated, curr_end );
+              length = strlen ( generated->read );
+              reverse = ( curr_end == model->single ) ? ( orientation & 2 ) : ( orientation & 1 );
+
+              // The read reached the limit of the sequence
+              if ( !generated->cut ) {
+                // Reverse the order of the nucleotides
+                if ( reverse ) {
+                  char swap;
+                  for ( int j = 0; j < (length/2); j ++ ) {
+                    swap = generated->read[j];
+                    generated->read[j] = generated->read[length-j-1];
+                    generated->read[length-j-1] = swap;
+                    swap = generated->quality[j];
+                    generated->quality[j] = generated->quality[length-j-1];
+                    generated->quality[length-j-1] = swap;
+                  }
                 }
-                // TODO: arbitrary value, this is only for testing
-                j += 20;
+
+                // Print result to file
+                printf ( "@%s %d %c\n", seq[i]->name.s, pos, ( reverse ) ? '-' : '+' );
+                printf ( "%s\n", generated->read );
+                printf ( "+\n" );
+                printf ( "%s\n\n", generated->quality );
+
+                // Update sequenced bases
+                sequenced += length;
+
+                // Change read-end
+                curr_end = ( curr_end == model->single ) ? model->pair : model->single;
+              }
+
+              // Update start position
+              pos += ( insert_size + length );
+              if ( pos >= aseq_p ) {
+                // Start from the beginning
+                pos = 0;
+                curr_end = model->single;
+              }
             }
+            fprintf ( stderr, "\t(sequenced):\t%d\t%d\t%.3f\n", sequenced, aseq_p, (sequenced/aseq_p)*100.0);
         }
     }
 
