@@ -16,6 +16,7 @@
 #include <libgen.h>
 #include <zlib.h>
 #include <htslib/kseq.h>
+#include <time.h>
 #include "allele.h"
 #include "parse_frequency.h"
 #include "wrapper.h"
@@ -53,6 +54,9 @@ int main ( int argc, char ** argv ) {
     unsigned long int igno = 0;
     unsigned long int udv_collision = 0;
     unsigned long int vcf_collision = 0;
+
+    // Init pseudorandom generator
+    srand ( time ( NULL ) );
 
     while ( ( opt = getopt ( argc, argv, "sn:u:o:" ) ) != -1 ) {
         switch ( opt ) {

@@ -19,8 +19,6 @@ source_t * source_init ( int sigma, int omega, int m, int graph ) {
         return NULL;
     }
 
-    srand ( time ( NULL ) );
-
     // Matrixes
     source->n = 0;
 
