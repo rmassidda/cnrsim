@@ -107,7 +107,7 @@ int main ( int argc, char ** argv ) {
             // Statistics
             int amp = 0;
             int deamp = 0;
-            for ( int t = 0; false && t < tandem->n; t ++ ) {
+            for ( int t = 0; t < tandem->n; t ++ ) {
               int gap = tandem->set[t].pos - seq_p;
               // Copy of the nucleotides between different tandems
               if ( gap > 0 ) {
@@ -153,6 +153,7 @@ int main ( int argc, char ** argv ) {
             pos = 0;
             curr_end = model->single;
 
+            // Reach the coverage
             while ( coverage > ( sequenced / aseq_p ) ) {
               if ( curr_end == model->single ) {
                 // Two bits: ++,+-,-+,--
