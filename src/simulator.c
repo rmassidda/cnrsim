@@ -190,6 +190,11 @@ int main ( int argc, char ** argv ) {
                   }
                 }
 
+                // Adjust quality score for visualization
+                for ( int j = 0; j < length; j ++ ) {
+                  generated->quality[j] += 33;
+                }
+
                 // Print result to file
                 printf ( "@%s %d %c\n", seq[i]->name.s, pos, ( reverse ) ? '-' : '+' );
                 printf ( "%s\n", generated->read );

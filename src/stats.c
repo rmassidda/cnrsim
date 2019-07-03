@@ -124,7 +124,7 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
         pos = ( i < stats->quality->n ) ? i : stats->quality->n - 1;
         pos = ( pos < stats->mismatch->n ) ? pos : stats->mismatch->n - 1;
         if ( read->align[z] != 2 ) {
-            read->quality[pos] = source_generate ( &read->align[z], 1, pos, stats->quality ) + 33;
+            read->quality[pos] = source_generate ( &read->align[z], 1, pos, stats->quality );
         }
         switch ( read->align[z] ) {
         case 0:
