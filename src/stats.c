@@ -132,7 +132,8 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
         // Minimum position
         pos = ( i < stats->quality->n ) ? i : stats->quality->n - 1;
         pos = ( pos < stats->mismatch->n ) ? pos : stats->mismatch->n - 1;
-        if ( read->align[z] != 2 ) {
+        // Quality score ignored if insertion or if end of alignment
+        if ( read->align[z] != 2 && read->align[z] < 4) {
             read->quality[pos] = source_generate ( &read->align[z], 1, pos, stats->quality );
         }
         switch ( read->align[z] ) {
