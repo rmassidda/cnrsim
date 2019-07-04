@@ -97,7 +97,7 @@ int main ( int argc, char ** argv ) {
         while ( kseq_read ( seq[i] ) >= 0 ) {
             // Analysis of the repetitions in the original sequence
             tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
-            //tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
+            tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
             amplified_seq = realloc ( amplified_seq, sizeof ( char ) * ( seq[i]->seq.l * 2 ) );
 
             // Index for the FASTA sequence
@@ -108,6 +108,10 @@ int main ( int argc, char ** argv ) {
             int amp = 0;
             int deamp = 0;
             for ( int t = 0; t < tandem->n; t ++ ) {
+              unsigned char in = tandem->set[t].rep;
+              if ( in >= model->max_repetition ) {
+                continue;
+              }
               int gap = tandem->set[t].pos - seq_p;
               // Copy of the nucleotides between different tandems
               if ( gap > 0 ) {
@@ -122,7 +126,6 @@ int main ( int argc, char ** argv ) {
                 fprintf ( stderr, "The tandem set isn't ordered.\n" );
                 exit ( EXIT_FAILURE );
               }
-              unsigned char in = tandem->set[t].rep;
               unsigned char out = source_generate (
                   &in,
                   1,
