@@ -18,13 +18,13 @@ stats_t * stats_init ( ) {
 
     // Data sources
     // Alignment: cigar -> cigar
-    stats->alignment = source_init ( 4, 4, 2 );
+    stats->alignment = source_init ( 4, 4, 2, 1 );
     // Mismatch: nucleotides -> nucleotides
-    stats->mismatch = source_init ( 5, 5, 1 );
+    stats->mismatch = source_init ( 5, 5, 1, 0);
     // Quality: cigar -> ASCII
-    stats->quality = source_init ( 4, 128, 1 );
+    stats->quality = source_init ( 4, 128, 1, 0 );
     // Distribution of errors in read
-    stats->distribution = source_init ( 0, 4, 0 );
+    stats->distribution = source_init ( 1, 4, 0, 0 );
 
     return stats;
 }
@@ -105,12 +105,21 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
     int pos = 0;
     unsigned char in, out;
 
+    // Check if the read is to be initialized
     if ( read == NULL ){
         read = malloc ( sizeof ( read_t ) );
-        read->align = NULL;
         read->alg_len = 0;
-        read->read = malloc ( sizeof ( char ) * stats->quality->n );
-        read->quality = malloc ( sizeof ( char ) * stats->quality->n );
+        read->buffer_size = 0;
+        read->align = NULL;
+        read->read = NULL;
+        read->quality = NULL;
+    }
+
+    // Check if read memory must be reallocated
+    if ( ( stats->quality->n + 1 ) > read->buffer_size ) {
+      read->read = realloc ( read->read, sizeof ( char ) *  ( stats->quality->n + 1 ) );
+      read->quality = realloc ( read->quality, sizeof ( char ) * ( stats->quality->n + 1 ) );
+      read->buffer_size = stats->quality->n + 1;
     }
 
     // Alignment generation
@@ -123,8 +132,9 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
         // Minimum position
         pos = ( i < stats->quality->n ) ? i : stats->quality->n - 1;
         pos = ( pos < stats->mismatch->n ) ? pos : stats->mismatch->n - 1;
-        if ( read->align[z] != 2 ) {
-            read->quality[pos] = source_generate ( &read->align[z], 1, pos, stats->quality ) + 33;
+        // Quality score ignored if insertion or if end of alignment
+        if ( read->align[z] != 2 && read->align[z] < 4) {
+            read->quality[pos] = source_generate ( &read->align[z], 1, pos, stats->quality );
         }
         switch ( read->align[z] ) {
         case 0:
@@ -133,7 +143,7 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
             ref ++;
             break;
         case 1:
-            read->read[pos] = 'I';
+            read->read[pos] = __nucleotide_rev ( rand () % 4 );
             i++;
             break;
         case 2:
@@ -165,14 +175,10 @@ read_t * stats_generate_read ( char * ref, read_t * read, stats_t * stats ){
 
 
 void stats_dump ( FILE * file, stats_t * stats ) {
-    fprintf ( file, "@alignment %d\n", stats->alignment->n );
-    source_dump ( file, stats->alignment );
-    fprintf ( file, "@mismatch %d\n", stats->mismatch->n );
-    source_dump ( file, stats->mismatch );
-    fprintf ( file, "@quality %d\n", stats->quality->n );
-    source_dump ( file, stats->quality );
-    fprintf ( file, "@distribution %d\n", stats->distribution->n );
-    source_dump ( file, stats->distribution );
+    source_dump ( file, "alignment", stats->alignment );
+    source_dump ( file, "mismatch", stats->mismatch );
+    source_dump ( file, "quality", stats->quality );
+    source_dump ( file, "distribution", stats->distribution );
 }
 
 void stats_destroy ( stats_t * stats ) {

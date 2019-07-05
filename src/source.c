@@ -13,13 +13,11 @@
 #include <math.h>
 #include "source.h"
 
-source_t * source_init ( int sigma, int omega, int m ) {
+source_t * source_init ( int sigma, int omega, int m, int graph ) {
     source_t * source = malloc ( sizeof ( source_t ) );
     if ( source == NULL ) {
         return NULL;
     }
-
-    srand ( time ( NULL ) );
 
     // Matrixes
     source->n = 0;
@@ -28,8 +26,8 @@ source_t * source_init ( int sigma, int omega, int m ) {
     source->m = m;
 
     // Alphabets
-    source->sigma = sigma + 1; // exceptional start character
-    source->omega = omega + 1; // exceptional end character
+    source->sigma = sigma + graph; // exceptional start character
+    source->omega = omega + graph; // exceptional end character
     source->prefix = ( int ) pow ( source->sigma, source->m );
 
     // Data
@@ -178,15 +176,13 @@ unsigned char * source_generate_word ( unsigned char * w, int * size, source_t *
     return w;
 }
 
-void source_dump ( FILE * file, source_t * source ) {
-    if ( source->normalized == NULL ) {
-        __normalize ( source );
-    }
+void source_dump ( FILE * file, char * source_name, source_t * source ) {
+    fprintf ( file, "@%s %d %d %d\n", source_name, source->n, source->prefix, source->omega );
 
     for ( int i = 0; i < source->n; i ++ ) {
         for ( int j = 0; j < source->prefix; j ++ ) {
             for ( int z = 0; z < ( int ) source->omega; z ++ ) {
-                fprintf ( file, "%.5f ", source->normalized[i][j * source->omega + z] );
+                fprintf ( file, "%lu ", source->raw[i][j * source->omega + z] );
             }
         }
         fprintf ( file, "\n" );
@@ -194,6 +190,9 @@ void source_dump ( FILE * file, source_t * source ) {
 }
 
 void source_destroy ( source_t * source ) {
+    if ( source == NULL ){
+        return;
+    }
     for ( int i = 0; i < source->n; i ++ ) {
         free ( source->raw[i] );
     }

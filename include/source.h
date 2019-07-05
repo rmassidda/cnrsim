@@ -28,7 +28,7 @@ struct source_t {
  * @param       m       memory
  * @returns     the initialized structure
  */
-source_t * source_init ( int sigma, int omega, int m );
+source_t * source_init ( int sigma, int omega, int m, int graph );
 
 /*
  * Updates the data with a new example
@@ -80,7 +80,7 @@ unsigned char * source_generate_word ( unsigned char * w, int * size, source_t *
  * @param       file    pointer to the file
  * @param       source  source to be used
  */
-void source_dump ( FILE * file, source_t * source );
+void source_dump ( FILE * file, char * source_name, source_t * source );
 
 /*
  * Deallocates a source

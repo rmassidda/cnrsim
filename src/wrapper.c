@@ -34,9 +34,6 @@ wrapper_t * wr_init ( char * vcf_filename, char * udv_filename, int ploidy ) {
     w->ploidy = ploidy;
     w->alt_index = malloc ( sizeof ( int ) * ploidy );
 
-    // Random number generator
-    srand ( time ( NULL ) );
-
     // VCF
     if ( vcf_filename != NULL ) {
         w->sr = bcf_sr_init ();
