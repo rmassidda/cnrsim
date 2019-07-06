@@ -217,9 +217,8 @@ int main ( int argc, char ** argv ) {
               // The read reached the limit of the sequence
               if ( !generated->cut ) {
                 if ( is_bam ) {
-									uint8_t *s, *start, *end;
+									uint8_t *s;
                   const char * qname = "test\0";
-									bam_entry = bam_init1 ();
                   // bam_entry->data: qname-cigar-seq-qual-aux
                   // qname
                   bam_entry->core.l_qname = strlen ( qname ) + 1;
@@ -242,14 +241,6 @@ int main ( int argc, char ** argv ) {
                       exit ( EXIT_FAILURE );
                     }
                   }
-                  start = bam_entry->data;
-                  end = bam_entry->data + bam_entry -> l_data;
-                  // fprintf ( stderr, "%d %d %d %d %d\n",
-                  //     bam_entry->core.l_qname,
-                  //     bam_entry->core.l_extranul,
-                  //     length,
-                  //     length + 1,
-                  //     bam_entry->l_data );
 
 									// QNAME
                   memcpy ( bam_entry->data, qname, bam_entry->core.l_qname );
@@ -277,38 +268,21 @@ int main ( int argc, char ** argv ) {
 									// PNEXT  mpos
                   bam_entry->core.mpos = -1;
 
-                  // QNAME
-                  // s = bam_get_qname ( bam_entry );
-                  // fprintf ( stderr, "qna:\t%ld\n", s -start );
-
-                  // CIGAR
-                  // s = bam_get_cigar ( bam_entry );
-                  // fprintf ( stderr, "cgr:\t%ld\n", s - start );
-
                   // SEQ
 									s = bam_get_seq ( bam_entry );
 									for ( int p = 0; p < bam_entry->core.l_qseq; p++ ){
 										bam1_seq_seti( s, p, seq_nt16_table[(unsigned char)generated->read[p]] );
 									}
-                  // fprintf ( stderr, "Seq:\t%ld\n", s -start );
 
                   // QUAL
 									s = bam_get_qual ( bam_entry );
-									for ( int p = 0; p < bam_entry->core.l_qseq; p++ ){
-										s[i] = generated->quality[p];
-									}
-                  // fprintf ( stderr, "Qual:\t%ld\n", s -start );
-
-                  // AUX
-                  // s = bam_get_aux( bam_entry );
-                  // fprintf ( stderr, "AUX:\t%ld %ld\n", s -start, end - s );
+                  memcpy ( s, generated->quality, length + 1 );
 
                   io_check = sam_write1 ( bam_fp, bam_hdr, bam_entry );
                   if ( io_check < 0 ) {
                     fprintf ( stderr, "Unable to write record to BAM file\n" );
                     exit ( EXIT_FAILURE );
                   }
-									bam_destroy1 ( bam_entry );	
                 }
                 else {
                   // Reverse the order of the nucleotides
@@ -368,7 +342,7 @@ int main ( int argc, char ** argv ) {
     free ( generated );
     sam_close ( bam_fp );
     bam_hdr_destroy ( bam_hdr );
-    //bam_destroy1 ( bam_entry );
+    bam_destroy1 ( bam_entry );
     free ( fp );
     free ( amplified_seq );
     free ( seq );
