@@ -37,6 +37,15 @@ int main ( int argc, char ** argv ) {
     // FASTA
     gzFile * fp;
     kseq_t ** seq;
+    // BAM
+    samFile * bam_fp = NULL;
+    bam_hdr_t * bam_hdr = NULL;
+    bam1_t * bam_entry = NULL;
+    int io_check;
+    // Output model
+    // TODO: parameter via commandline
+    bool is_bam = true;
+
     // Amplification
     char * amplified_seq = NULL;
     tandem_set_t * tandem = NULL;
@@ -90,6 +99,24 @@ int main ( int argc, char ** argv ) {
             exit ( EXIT_FAILURE );
         }
         seq[i] = kseq_init ( fp[i] );
+    }
+
+    if ( is_bam ) {
+      bam_fp = sam_open ( "/dev/stdout", "wb" );
+      if ( bam_fp == NULL ) { 
+        fprintf ( stderr, "File /dev/stdout not found.\n" );
+        exit ( EXIT_FAILURE );
+      }
+      bam_hdr = bam_hdr_init ();
+      // TODO: this is a mock header
+      bam_hdr->text = strdup ( "@HD\tVN:1.4\tSO:unknown\n" );
+      bam_hdr->l_text = strlen ( bam_hdr->text );
+      bam_hdr->n_targets = 0;
+      io_check = sam_hdr_write ( bam_fp, bam_hdr );
+      if ( io_check != 0 ) {
+        fprintf ( stderr, "IO error\tsam_hdr_write\n" );
+        exit ( EXIT_FAILURE );
+      }
     }
 
     // Simulated read generation
@@ -180,29 +207,33 @@ int main ( int argc, char ** argv ) {
 
               // The read reached the limit of the sequence
               if ( !generated->cut ) {
-                // Reverse the order of the nucleotides
-                if ( reverse ) {
-                  char swap;
-                  for ( int j = 0; j < (length/2); j ++ ) {
-                    swap = generated->read[j];
-                    generated->read[j] = generated->read[length-j-1];
-                    generated->read[length-j-1] = swap;
-                    swap = generated->quality[j];
-                    generated->quality[j] = generated->quality[length-j-1];
-                    generated->quality[length-j-1] = swap;
+                if ( is_bam ) {
+                }
+                else {
+                  // Reverse the order of the nucleotides
+                  if ( reverse ) {
+                    char swap;
+                    for ( int j = 0; j < (length/2); j ++ ) {
+                      swap = generated->read[j];
+                      generated->read[j] = generated->read[length-j-1];
+                      generated->read[length-j-1] = swap;
+                      swap = generated->quality[j];
+                      generated->quality[j] = generated->quality[length-j-1];
+                      generated->quality[length-j-1] = swap;
+                    }
                   }
-                }
 
-                // Adjust quality score for visualization
-                for ( int j = 0; j < length; j ++ ) {
-                  generated->quality[j] += 33;
-                }
+                  // Adjust quality score for visualization
+                  for ( int j = 0; j < length; j ++ ) {
+                    generated->quality[j] += 33;
+                  }
 
-                // Print result to file
-                printf ( "@%s %d %c\n", seq[i]->name.s, pos, ( reverse ) ? '-' : '+' );
-                printf ( "%s\n", generated->read );
-                printf ( "+\n" );
-                printf ( "%s\n\n", generated->quality );
+                  // Print result to file
+                  printf ( "@%s %d %c\n", seq[i]->name.s, pos, ( reverse ) ? '-' : '+' );
+                  printf ( "%s\n", generated->read );
+                  printf ( "+\n" );
+                  printf ( "%s\n\n", generated->quality );
+                }
 
                 // Update sequenced bases
                 sequenced += length;
@@ -234,6 +265,9 @@ int main ( int argc, char ** argv ) {
         free ( generated->quality );
     }
     free ( generated );
+    sam_close ( bam_fp );
+    bam_hdr_destroy ( bam_hdr );
+    bam_destroy1 ( bam_entry );
     free ( fp );
     free ( amplified_seq );
     free ( seq );
