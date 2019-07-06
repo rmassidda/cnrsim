@@ -20,6 +20,8 @@
 
 // Init kseq structure
 KSEQ_INIT ( gzFile, gzread );
+// Macro to set a nucleotide
+#define bam1_seq_seti(s, i, c) ( (s)[(i)>>1] = ((s)[(i)>>1] & 0xf<<(((i)&1)<<2)) | (c)<<((~(i)&1)<<2) )
 
 void usage ( char * name ) {
     fprintf ( stderr, "Usage: %s coverage error_model fastq [fastq ...]\n", name );
@@ -102,11 +104,12 @@ int main ( int argc, char ** argv ) {
     }
 
     if ( is_bam ) {
-      bam_fp = sam_open ( "/dev/stdout", "wb" );
+      bam_fp = sam_open ( "/dev/stdout", "wu" );
       if ( bam_fp == NULL ) { 
         fprintf ( stderr, "File /dev/stdout not found.\n" );
         exit ( EXIT_FAILURE );
       }
+
       bam_hdr = bam_hdr_init ();
       // TODO: this is a mock header
       bam_hdr->text = strdup ( "@HD\tVN:1.4\tSO:unknown\n" );
@@ -115,6 +118,12 @@ int main ( int argc, char ** argv ) {
       io_check = sam_hdr_write ( bam_fp, bam_hdr );
       if ( io_check != 0 ) {
         fprintf ( stderr, "IO error\tsam_hdr_write\n" );
+        exit ( EXIT_FAILURE );
+      }
+
+      bam_entry = bam_init1 ();
+      if ( bam_entry == NULL ) {
+        fprintf ( stderr, "Unable to create BAM record.\n" );
         exit ( EXIT_FAILURE );
       }
     }
@@ -208,6 +217,68 @@ int main ( int argc, char ** argv ) {
               // The read reached the limit of the sequence
               if ( !generated->cut ) {
                 if ( is_bam ) {
+									uint8_t *s;
+                  const char * qname = "test\0";
+									bam_entry = bam_init1 ();
+                  // bam_entry->data: qname-cigar-seq-qual-aux
+                  // qname+1 cigar seq qual+1 aux
+                  bam_entry->l_data = strlen ( qname ) + 1 + 0 + length + ( length + 1 ) + 0;
+                  // m_data === memory
+                  // l_data === needed memory
+                  if ( bam_entry->m_data < bam_entry->l_data ) {
+                    bam_entry->m_data = bam_entry->l_data;
+                    kroundup32 ( bam_entry->m_data );
+                    bam_entry->data = realloc ( bam_entry->data, bam_entry->m_data );
+                    if ( bam_entry->data == NULL ) {
+                      fprintf ( stderr, "Cannot reallocate memory for a BAM entry.\n" );
+                      exit ( EXIT_FAILURE );
+                    }
+                  }
+
+									// QNAME
+                  bam_entry->core.l_qname = strlen ( qname ) + 1;
+                  memcpy ( bam_entry->data, qname, bam_entry->core.l_qname );
+                  
+									// FLAG
+									bam_entry->core.flag = BAM_FMUNMAP;
+									// RNAME  tid
+                  bam_entry->core.tid = -1;
+									// POS    pos
+                  bam_entry->core.pos = pos;
+									// MAPQ
+                  bam_entry->core.qual = 255;
+
+                  // TODO: convert alignment to CIGAR and include it
+									// CIGAR
+									bam_entry->core.n_cigar = 0;
+
+                  // TODO: mate reads
+									// RNEXT  mtid
+                  bam_entry->core.mtid = -1;
+									// PNEXT  mpos
+                  bam_entry->core.mpos = -1;
+
+                  // TLEN
+									bam_entry->core.l_qname = length + 1;
+
+                  // SEQ
+									s = bam_get_seq ( bam_entry );
+									for ( int p = 0; p < bam_entry->core.l_qseq; p++ ){
+										bam1_seq_seti( s, p, seq_nt16_table[(unsigned char)generated->read[p]] );
+									}
+
+                  // QUAL
+									s = bam_get_qual ( bam_entry );
+									for ( int p = 0; p < bam_entry->core.l_qseq; p++ ){
+										s[i] = generated->quality[p];
+									}
+
+                  io_check = sam_write1 ( bam_fp, bam_hdr, bam_entry );
+                  if ( io_check < 0 ) {
+                    fprintf ( stderr, "Unable to write record to BAM file\n" );
+                    exit ( EXIT_FAILURE );
+                  }
+									bam_destroy1 ( bam_entry );	
                 }
                 else {
                   // Reverse the order of the nucleotides
