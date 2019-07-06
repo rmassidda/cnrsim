@@ -22,6 +22,8 @@
 KSEQ_INIT ( gzFile, gzread );
 // Macro to set a nucleotide
 #define bam1_seq_seti(s, i, c) ( (s)[(i)>>1] = ((s)[(i)>>1] & 0xf<<(((i)&1)<<2)) | (c)<<((~(i)&1)<<2) )
+#define MAX_TARGETS 2048
+#define MAX_TARGET_LENGTH 256
 
 void usage ( char * name ) {
     fprintf ( stderr, "Usage: %s coverage error_model fastq [fastq ...]\n", name );
@@ -111,10 +113,29 @@ int main ( int argc, char ** argv ) {
       }
 
       bam_hdr = bam_hdr_init ();
-      // TODO: this is a mock header
       bam_hdr->text = strdup ( "@HD\tVN:1.4\tSO:unknown\n" );
       bam_hdr->l_text = strlen ( bam_hdr->text );
       bam_hdr->n_targets = 0;
+      bam_hdr->target_len = malloc ( sizeof ( uint32_t ) * MAX_TARGETS );
+      bam_hdr->target_name = malloc ( sizeof ( char * ) * MAX_TARGETS );
+      for ( int i = 0; i < MAX_TARGETS; i ++ ) {
+        bam_hdr->target_name[i] = malloc ( sizeof ( char ) * MAX_TARGET_LENGTH );
+      }
+
+      for ( int i = 0; i < ploidy; i ++ ){
+        while ( kseq_read ( seq[i] ) >= 0 ) {
+          // If the region isn't already been added
+          if ( bam_name2id ( bam_hdr, seq[i]->name.s ) == -1 ) {
+            bam_hdr->target_len[bam_hdr->n_targets] = seq[i]->name.l;
+            memcpy ( bam_hdr->target_name[bam_hdr->n_targets], seq[i]->name.s, seq[i]->name.l + 1 );
+            bam_hdr->n_targets ++;
+          }
+        }
+        kseq_destroy ( seq[i] );
+        gzrewind ( fp[i] );
+        seq[i] = kseq_init ( fp[i] );
+      }
+
       io_check = sam_hdr_write ( bam_fp, bam_hdr );
       if ( io_check != 0 ) {
         fprintf ( stderr, "IO error\tsam_hdr_write\n" );
@@ -249,7 +270,7 @@ int main ( int argc, char ** argv ) {
 									// FLAG
 									bam_entry->core.flag = BAM_FMUNMAP;
 									// RNAME  tid
-                  bam_entry->core.tid = -1;
+                  bam_entry->core.tid = bam_name2id ( bam_hdr, seq[i]->name.s );
 									// POS    pos
                   bam_entry->core.pos = pos;
 									// MAPQ
@@ -264,7 +285,7 @@ int main ( int argc, char ** argv ) {
 
                   // TODO: mate reads
 									// RNEXT  mtid
-                  bam_entry->core.mtid = -1;
+                  bam_entry->core.mtid = bam_name2id ( bam_hdr, seq[i]->name.s );
 									// PNEXT  mpos
                   bam_entry->core.mpos = -1;
 
@@ -341,6 +362,9 @@ int main ( int argc, char ** argv ) {
     }
     free ( generated );
     sam_close ( bam_fp );
+    for ( int i = bam_hdr->n_targets; i < MAX_TARGETS; i ++ ) {
+      free ( bam_hdr->target_name[i] );
+    }
     bam_hdr_destroy ( bam_hdr );
     bam_destroy1 ( bam_entry );
     free ( fp );
