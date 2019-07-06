@@ -217,12 +217,20 @@ int main ( int argc, char ** argv ) {
               // The read reached the limit of the sequence
               if ( !generated->cut ) {
                 if ( is_bam ) {
-									uint8_t *s;
+									uint8_t *s, *start, *end;
                   const char * qname = "test\0";
 									bam_entry = bam_init1 ();
                   // bam_entry->data: qname-cigar-seq-qual-aux
-                  // qname+1 cigar seq qual+1 aux
-                  bam_entry->l_data = strlen ( qname ) + 1 + 0 + length + ( length + 1 ) + 0;
+                  // qname
+                  bam_entry->core.l_qname = strlen ( qname ) + 1;
+                  kroundup32 ( bam_entry->core.l_qname );
+                  bam_entry->core.l_extranul = bam_entry->core.l_qname - strlen ( qname ) - 1;
+                  bam_entry->l_data = bam_entry->core.l_qname;
+                  // seq
+                  bam_entry->l_data += length>>1;
+                  // quality
+                  bam_entry->l_data += length + 1;
+
                   // m_data === memory
                   // l_data === needed memory
                   if ( bam_entry->m_data < bam_entry->l_data ) {
@@ -234,10 +242,18 @@ int main ( int argc, char ** argv ) {
                       exit ( EXIT_FAILURE );
                     }
                   }
+                  start = bam_entry->data;
+                  end = bam_entry->data + bam_entry -> l_data;
+                  // fprintf ( stderr, "%d %d %d %d %d\n",
+                  //     bam_entry->core.l_qname,
+                  //     bam_entry->core.l_extranul,
+                  //     length,
+                  //     length + 1,
+                  //     bam_entry->l_data );
 
 									// QNAME
-                  bam_entry->core.l_qname = strlen ( qname ) + 1;
                   memcpy ( bam_entry->data, qname, bam_entry->core.l_qname );
+                  memset ( &bam_entry->data[bam_entry->core.l_qname], 0, bam_entry->core.l_extranul );
                   
 									// FLAG
 									bam_entry->core.flag = BAM_FMUNMAP;
@@ -252,26 +268,40 @@ int main ( int argc, char ** argv ) {
 									// CIGAR
 									bam_entry->core.n_cigar = 0;
 
+                  // LSEQ
+                  bam_entry->core.l_qseq = length;
+
                   // TODO: mate reads
 									// RNEXT  mtid
                   bam_entry->core.mtid = -1;
 									// PNEXT  mpos
                   bam_entry->core.mpos = -1;
 
-                  // TLEN
-									bam_entry->core.l_qname = length + 1;
+                  // QNAME
+                  // s = bam_get_qname ( bam_entry );
+                  // fprintf ( stderr, "qna:\t%ld\n", s -start );
+
+                  // CIGAR
+                  // s = bam_get_cigar ( bam_entry );
+                  // fprintf ( stderr, "cgr:\t%ld\n", s - start );
 
                   // SEQ
 									s = bam_get_seq ( bam_entry );
 									for ( int p = 0; p < bam_entry->core.l_qseq; p++ ){
 										bam1_seq_seti( s, p, seq_nt16_table[(unsigned char)generated->read[p]] );
 									}
+                  // fprintf ( stderr, "Seq:\t%ld\n", s -start );
 
                   // QUAL
 									s = bam_get_qual ( bam_entry );
 									for ( int p = 0; p < bam_entry->core.l_qseq; p++ ){
 										s[i] = generated->quality[p];
 									}
+                  // fprintf ( stderr, "Qual:\t%ld\n", s -start );
+
+                  // AUX
+                  // s = bam_get_aux( bam_entry );
+                  // fprintf ( stderr, "AUX:\t%ld %ld\n", s -start, end - s );
 
                   io_check = sam_write1 ( bam_fp, bam_hdr, bam_entry );
                   if ( io_check < 0 ) {
@@ -338,7 +368,7 @@ int main ( int argc, char ** argv ) {
     free ( generated );
     sam_close ( bam_fp );
     bam_hdr_destroy ( bam_hdr );
-    bam_destroy1 ( bam_entry );
+    //bam_destroy1 ( bam_entry );
     free ( fp );
     free ( amplified_seq );
     free ( seq );
