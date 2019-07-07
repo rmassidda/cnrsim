@@ -168,12 +168,12 @@ int main ( int argc, char ** argv ) {
     }
 
     // Simulated read generation
+    read_counter = 0;
     for ( int i = 0; i < ploidy; i ++ ){
         kseq_return = kseq_read ( seq[i] );
         while ( kseq_return >= 0 || kseq_return == -2 ) {
             if ( is_bam ) {
               current_region = bam_name2id ( bam_hdr, seq[i]->name.s );
-              read_counter = 0;
             }
             // Analysis of the repetitions in the original sequence
             tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
