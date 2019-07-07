@@ -322,7 +322,7 @@ int main ( int argc, char ** argv ) {
                 for ( i = 0; i < ploidy; i ++ ) {
                     curr_seq = seq[i];
                     // Seek on the allele
-                    allele_seek ( pos, allele[i] );
+                    allele_seek ( pos, true, allele[i] );
 
                     // Flanking regions
                     start = allele[i]->pos;
