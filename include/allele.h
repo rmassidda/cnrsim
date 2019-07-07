@@ -8,6 +8,7 @@
  */
 #ifndef VARIATOR_H
 #define VARIATOR_H
+#include <stdbool.h>
 
 typedef struct allele_t allele_t;
 
@@ -18,7 +19,6 @@ struct allele_t {
     long int pos; // current position
     long int ref; // corresponding reference position
     long int alg; // corresponding alignment position
-    long int off; // offset from reference position
 };
 
 /*
@@ -43,15 +43,16 @@ allele_t * allele_init ( long int size, allele_t * allele );
 allele_t * allele_point ( long int size, char * sequence, char * alignment, allele_t * allele );
 
 /*
- * Sets the allele pointer to the position
+ * Sets the allele pointers to the position
  * corresponding to the required reference
- * position.
+ * or allelic position.
  * This function must be used with rising input.
  *
- * @param       position relative to the reference
+ * @param       position
+ * @param       is the position relative to the reference
  * @return      the corresponding offset
  */
-int allele_seek ( int position, allele_t * allele );
+int allele_seek ( int position, bool from_reference, allele_t * allele );
 
 /*
  * Applies a variation at the current allele position.
