@@ -48,6 +48,8 @@ int main ( int argc, char ** argv ) {
     bam1_t * bam_entry = NULL;
     int io_check;
     int current_region;
+    char qname[4096];
+    int read_counter;
     // TODO: parameter via commandline
     bool is_bam = true;
 
@@ -169,6 +171,7 @@ int main ( int argc, char ** argv ) {
         while ( kseq_return >= 0 || kseq_return == -2 ) {
             if ( is_bam ) {
               current_region = bam_name2id ( bam_hdr, seq[i]->name.s );
+              read_counter = 0;
             }
             // Analysis of the repetitions in the original sequence
             tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
@@ -242,6 +245,9 @@ int main ( int argc, char ** argv ) {
                 int up_bound = ( insert_size + 1 ) * ( model->max_insert_size / model->size_granularity );
                 insert_size = rand () % ( up_bound - lo_bound + 1 );
                 insert_size += lo_bound;
+                if ( is_bam ) {
+                  read_counter ++;
+                }
               }
               else {
                 // There is no insert size after mate pair
@@ -257,7 +263,7 @@ int main ( int argc, char ** argv ) {
               if ( !generated->cut ) {
                 if ( is_bam ) {
 									uint8_t *s;
-                  const char * qname = "test\0";
+                  sprintf ( qname, "%sr%x", seq[i]->name.s, read_counter );
                   // bam_entry->data: qname-cigar-seq-qual-aux
                   // qname
                   bam_entry->core.l_qname = strlen ( qname ) + 1;
