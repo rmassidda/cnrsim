@@ -41,6 +41,7 @@ int main ( int argc, char ** argv ) {
     // FASTA
     gzFile * fp;
     kseq_t ** seq;
+    int kseq_return;
     // BAM
     samFile * bam_fp = NULL;
     bam_hdr_t * bam_hdr = NULL;
@@ -116,6 +117,7 @@ int main ( int argc, char ** argv ) {
       bam_hdr->text = strdup ( "@HD\tVN:1.4\tSO:unknown\n" );
       bam_hdr->l_text = strlen ( bam_hdr->text );
       bam_hdr->n_targets = 0;
+      bam_hdr->sdict = 0;
       bam_hdr->target_len = malloc ( sizeof ( uint32_t ) * MAX_TARGETS );
       bam_hdr->target_name = malloc ( sizeof ( char * ) * MAX_TARGETS );
       for ( int i = 0; i < MAX_TARGETS; i ++ ) {
@@ -123,13 +125,25 @@ int main ( int argc, char ** argv ) {
       }
 
       for ( int i = 0; i < ploidy; i ++ ){
-        while ( kseq_read ( seq[i] ) >= 0 ) {
+        kseq_return = kseq_read ( seq[i] );
+        while ( kseq_return >= 0 || kseq_return == -2 ) {
           // If the region isn't already been added
-          if ( bam_name2id ( bam_hdr, seq[i]->name.s ) == -1 ) {
+          // can't use bam_name2id here, because it
+          // generates the dictionary on the first
+          // call, so it would be empty
+          bool already_in = false;
+          for ( int j = 0; j < bam_hdr->n_targets; j ++ ) {
+            if ( strncmp ( seq[i]->name.s, bam_hdr->target_name[j], seq[i]->name.l ) == 0 ) {
+              already_in = true;
+              break;
+            }
+          }
+          if ( ! already_in ) {
             bam_hdr->target_len[bam_hdr->n_targets] = seq[i]->name.l;
             memcpy ( bam_hdr->target_name[bam_hdr->n_targets], seq[i]->name.s, seq[i]->name.l + 1 );
             bam_hdr->n_targets ++;
           }
+          kseq_return = kseq_read ( seq[i] );
         }
         kseq_destroy ( seq[i] );
         gzrewind ( fp[i] );
@@ -151,7 +165,8 @@ int main ( int argc, char ** argv ) {
 
     // Simulated read generation
     for ( int i = 0; i < ploidy; i ++ ){
-        while ( kseq_read ( seq[i] ) >= 0 ) {
+        kseq_return = kseq_read ( seq[i] );
+        while ( kseq_return >= 0 || kseq_return == -2 ) {
             if ( is_bam ) {
               current_region = bam_name2id ( bam_hdr, seq[i]->name.s );
             }
@@ -350,6 +365,9 @@ int main ( int argc, char ** argv ) {
               }
             }
             fprintf ( stderr, "\t(sequenced):\t%d\t%d\t%.3f\n", sequenced, aseq_p, (sequenced/aseq_p)*100.0);
+
+            // Read next sequence
+            kseq_return = kseq_read ( seq[i] );
         }
     }
 
