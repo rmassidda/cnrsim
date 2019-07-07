@@ -25,7 +25,6 @@ allele_t * allele_init ( long int size, allele_t * allele ) {
     allele->alignment = realloc ( allele->alignment, ( sizeof ( char ) ) * allele->buffer_size );
     // Initial conditions
     allele->pos = 0;
-    allele->off = 0;
     allele->ref = 0;
     allele->alg = 0;
     return allele;
@@ -39,40 +38,42 @@ allele_t * allele_point ( long int size, char * sequence, char * alignment, alle
     allele->sequence = sequence;
     allele->alignment = alignment;
     allele->pos = 0;
-    allele->off = 0;
     allele->ref = 0;
     allele->alg = 0;
     return allele;
 }
 
-int allele_seek ( int position, allele_t * allele ) {
+int allele_seek ( int position, bool from_reference, allele_t * allele ) {
+    long int * p;
+    char target;
     if ( allele->alignment == NULL ) {
         allele->pos = position;
         allele->ref = position;
         return allele->pos;
     }
-    int direction = ( position < allele->ref ) ? -1 : 1;
-    while ( position != allele->ref ) {
-        // The structure contains the offset
-        // computed up to the allele->ref position
-        // in the reference
-        do {
-            // Next position in the alignment
-            allele->alg += direction;
-            // Offset update
-            if ( allele->alignment[allele->alg] == 'I' ) {
-                allele->off -= direction;
-            } else if ( allele->alignment[allele->alg] == 'D' ) {
-                allele->off += direction;
-            }
-            // If there is a 'D' or a '=' it corresponds
-            // to a new position on the reference
-        } while ( allele->alignment[allele->alg] == 'I' );
-        allele->ref += direction;
+
+    // Set which position is to be monitored
+    p = ( from_reference ) ? &(allele->ref) : &(allele->pos);
+    // Set which character has to be ignored
+    target = ( from_reference ) ? 'I' : 'D';
+
+    // Up to the end of the alignment
+    while ( allele->alg < allele->buffer_size ) {
+      // If the desired position is found and
+      // there are no more corresponding ones
+      if ( *p == position && allele->alignment[allele->alg] != target ) {
+        return ( from_reference ) ? allele->pos : allele->ref;
+      }
+      // Increase the pointers
+      switch ( allele->alignment[allele->alg] ) {
+        case 'I': allele->pos ++;
+        case 'D': allele->ref ++;
+        default: allele->pos ++; allele->ref ++;
+      }
+      allele->alg ++;
     }
-    // Update of the position
-    allele->pos = allele->ref - allele->off;
-    return allele->pos;
+    // Position not found
+    return ( from_reference ) ? allele->pos : allele->ref;
 }
 
 int allele_variation ( char * ref, char * alt, allele_t * allele ) {
