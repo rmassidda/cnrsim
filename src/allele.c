@@ -66,9 +66,9 @@ int allele_seek ( int position, bool from_reference, allele_t * allele ) {
       }
       // Increase the pointers
       switch ( allele->alignment[allele->alg] ) {
-        case 'I': allele->pos ++;
-        case 'D': allele->ref ++;
-        default: allele->pos ++; allele->ref ++;
+        case 'I': allele->pos ++; break;
+        case 'D': allele->ref ++; break;
+        default: allele->pos ++; allele->ref ++; break;
       }
       allele->alg ++;
     }
