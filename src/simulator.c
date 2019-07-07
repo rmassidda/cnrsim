@@ -50,6 +50,8 @@ int main ( int argc, char ** argv ) {
     int current_region;
     char qname[4096];
     int read_counter;
+    int prev_pos = 0;
+    int next_pos = 0;
     // TODO: parameter via commandline
     bool is_bam = true;
 
@@ -236,6 +238,11 @@ int main ( int argc, char ** argv ) {
 
             // Reach the coverage
             while ( coverage > ( sequenced / aseq_p ) ) {
+              // Generate new read
+              generated = stats_generate_read ( &amplified_seq[pos], generated, curr_end );
+              length = strlen ( generated->read );
+
+              // Set specific end value
               if ( curr_end == model->single ) {
                 // Two bits: ++,+-,-+,--
                 orientation = source_generate ( NULL, 0, 0, model->orientation );
@@ -250,6 +257,13 @@ int main ( int argc, char ** argv ) {
 									bam_entry->core.flag = BAM_FPAIRED + BAM_FPROPER_PAIR;
 									bam_entry->core.flag += ( orientation << 4 );
                   bam_entry->core.flag += 64;
+                  bam_entry->core.tid = current_region;
+                  bam_entry->core.pos = pos;
+                  prev_pos = pos;
+                  bam_entry->core.mtid = current_region;
+                  bam_entry->core.mpos = pos + length + insert_size;
+                  next_pos = bam_entry->core.mpos;
+                  bam_entry->core.qual = 255;
                 }
               }
               else {
@@ -267,12 +281,12 @@ int main ( int argc, char ** argv ) {
                   }
 									bam_entry->core.flag += ( orientation << 4 );
                   bam_entry->core.flag += 64;
+                  bam_entry->core.pos = next_pos;
+                  bam_entry->core.mpos = prev_pos;
                 }
               }
 
-              // Generate new read
-              generated = stats_generate_read ( &amplified_seq[pos], generated, curr_end );
-              length = strlen ( generated->read );
+              // Reverse strain in FASTQ
               reverse = ( curr_end == model->single ) ? ( orientation & 2 ) : ( orientation & 1 );
 
               // The read reached the limit of the sequence
@@ -307,12 +321,6 @@ int main ( int argc, char ** argv ) {
                   memcpy ( bam_entry->data, qname, bam_entry->core.l_qname );
                   memset ( &bam_entry->data[bam_entry->core.l_qname], 0, bam_entry->core.l_extranul );
                   
-									// RNAME  tid
-                  bam_entry->core.tid = current_region;
-									// POS    pos
-                  bam_entry->core.pos = pos;
-									// MAPQ
-                  bam_entry->core.qual = 255;
 
                   // TODO: convert alignment to CIGAR and include it
 									// CIGAR
@@ -320,12 +328,6 @@ int main ( int argc, char ** argv ) {
 
                   // LSEQ
                   bam_entry->core.l_qseq = length;
-
-                  // TODO: mate reads
-									// RNEXT  mtid
-                  bam_entry->core.mtid = current_region;
-									// PNEXT  mpos
-                  bam_entry->core.mpos = -1;
 
                   // SEQ
 									s = bam_get_seq ( bam_entry );
