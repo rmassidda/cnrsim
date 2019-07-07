@@ -46,7 +46,7 @@ int main ( int argc, char ** argv ) {
     bam_hdr_t * bam_hdr = NULL;
     bam1_t * bam_entry = NULL;
     int io_check;
-    // Output model
+    int current_region;
     // TODO: parameter via commandline
     bool is_bam = true;
 
@@ -106,7 +106,7 @@ int main ( int argc, char ** argv ) {
     }
 
     if ( is_bam ) {
-      bam_fp = sam_open ( "/dev/stdout", "wu" );
+      bam_fp = sam_open ( "/dev/stdout", "wb" );
       if ( bam_fp == NULL ) { 
         fprintf ( stderr, "File /dev/stdout not found.\n" );
         exit ( EXIT_FAILURE );
@@ -152,6 +152,9 @@ int main ( int argc, char ** argv ) {
     // Simulated read generation
     for ( int i = 0; i < ploidy; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
+            if ( is_bam ) {
+              current_region = bam_name2id ( bam_hdr, seq[i]->name.s );
+            }
             // Analysis of the repetitions in the original sequence
             tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
             tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
@@ -270,7 +273,7 @@ int main ( int argc, char ** argv ) {
 									// FLAG
 									bam_entry->core.flag = BAM_FMUNMAP;
 									// RNAME  tid
-                  bam_entry->core.tid = bam_name2id ( bam_hdr, seq[i]->name.s );
+                  bam_entry->core.tid = current_region;
 									// POS    pos
                   bam_entry->core.pos = pos;
 									// MAPQ
@@ -285,7 +288,7 @@ int main ( int argc, char ** argv ) {
 
                   // TODO: mate reads
 									// RNEXT  mtid
-                  bam_entry->core.mtid = bam_name2id ( bam_hdr, seq[i]->name.s );
+                  bam_entry->core.mtid = current_region;
 									// PNEXT  mpos
                   bam_entry->core.mpos = -1;
 
