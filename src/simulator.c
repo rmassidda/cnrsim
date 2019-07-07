@@ -247,11 +247,27 @@ int main ( int argc, char ** argv ) {
                 insert_size += lo_bound;
                 if ( is_bam ) {
                   read_counter ++;
+									bam_entry->core.flag = BAM_FPAIRED + BAM_FPROPER_PAIR;
+									bam_entry->core.flag += ( orientation << 4 );
+                  bam_entry->core.flag += 64;
                 }
               }
               else {
                 // There is no insert size after mate pair
                 insert_size = 0;
+                if ( is_bam ) {
+                  bam_entry->core.flag -= ( orientation << 4 );
+                  // TODO: there must be a clever way
+                  // for inverting these two bits
+                  if ( orientation == 1 ) {
+                    orientation = 2;
+                  }
+                  else if ( orientation == 2 ) {
+                    orientation = 1;
+                  }
+									bam_entry->core.flag += ( orientation << 4 );
+                  bam_entry->core.flag += 64;
+                }
               }
 
               // Generate new read
@@ -291,8 +307,6 @@ int main ( int argc, char ** argv ) {
                   memcpy ( bam_entry->data, qname, bam_entry->core.l_qname );
                   memset ( &bam_entry->data[bam_entry->core.l_qname], 0, bam_entry->core.l_extranul );
                   
-									// FLAG
-									bam_entry->core.flag = BAM_FMUNMAP;
 									// RNAME  tid
                   bam_entry->core.tid = current_region;
 									// POS    pos
