@@ -44,6 +44,7 @@ int main ( int argc, char ** argv ) {
     int coverage;
     int sequenced;
     // Generation
+    bool single_only = true;
     int insert_size = 0;
     int orientation = 0;
     int length;
@@ -75,6 +76,9 @@ int main ( int argc, char ** argv ) {
     // Init model
     model = model_parse ( model_fp );
     fclose ( model_fp );
+
+    // Check if there are pair reads
+    single_only = ( model->pair->alignment->n == 0 );
 
     // Input sequences
     ploidy = argc - optind;
@@ -209,6 +213,7 @@ int main ( int argc, char ** argv ) {
 
                 // Change read-end
                 curr_end = ( curr_end == model->single ) ? model->pair : model->single;
+                curr_end = single_only ? model->single : curr_end;
               }
 
               // Update start position
