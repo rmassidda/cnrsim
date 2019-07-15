@@ -42,7 +42,7 @@ int main ( int argc, char ** argv ) {
     tandem_set_t * tandem = NULL;
     // Coverage
     int coverage;
-    int sequenced;
+    long sequenced;
     // Generation
     bool single_only = true;
     int insert_size = 0;
@@ -102,9 +102,9 @@ int main ( int argc, char ** argv ) {
             // Sequence loaded
             fprintf ( stderr, "%s\n", seq[i]->name.s );
             // Index for the FASTA sequence
-            int seq_p = 0;
+            long seq_p = 0;
             // Index for the amplified sequence
-            int aseq_p = 0;
+            long aseq_p = 0;
             // Analysis of the repetitions in the original sequence
             if ( model->amplification->n != 0 ) {
               tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
@@ -151,7 +151,7 @@ int main ( int argc, char ** argv ) {
               aseq_p += ( seq[i]->seq.l - seq_p );
               seq_p = seq[i]->seq.l;
               amplified_seq[aseq_p] = '\0';
-              fprintf ( stderr, "\t(amplified):\t%d\t%d\t%.3f\n", aseq_p, seq_p, (aseq_p*100.0/seq_p));
+              fprintf ( stderr, "\t(amplified):\t%ld\t%ld\t%.3f\n", aseq_p, seq_p, (aseq_p*100.0/seq_p));
             }
             else {
               seq_p = seq[i]->seq.l;
@@ -229,7 +229,7 @@ int main ( int argc, char ** argv ) {
               }
               fprintf ( stderr, "\t(sequenced):\t%.3f%%\r", (100.0 * sequenced / aseq_p ));
             }
-            fprintf ( stderr, "\t(sequenced):\t%d\t%d\t%.3f%%\n", sequenced, aseq_p, (100.0 * sequenced / aseq_p ));
+            fprintf ( stderr, "\t(sequenced):\t%ld\t%ld\t%.3f%%\n", sequenced, aseq_p, (100.0 * sequenced / aseq_p ));
         }
     }
 
