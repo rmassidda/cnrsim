@@ -99,6 +99,8 @@ int main ( int argc, char ** argv ) {
     // Simulated read generation
     for ( int i = 0; i < ploidy; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
+            // Sequence loaded
+            fprintf ( stderr, "%s\n", seq[i]->name.s );
             // Index for the FASTA sequence
             int seq_p = 0;
             // Index for the amplified sequence
@@ -149,7 +151,6 @@ int main ( int argc, char ** argv ) {
               aseq_p += ( seq[i]->seq.l - seq_p );
               seq_p = seq[i]->seq.l;
               amplified_seq[aseq_p] = '\0';
-              fprintf ( stderr, "%s\n", seq[i]->name.s );
               fprintf ( stderr, "\t(amplified):\t%d\t%d\t%.3f\n", aseq_p, seq_p, (aseq_p*100.0/seq_p));
             }
             else {
