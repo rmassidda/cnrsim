@@ -292,7 +292,7 @@ int main ( int argc, char ** argv ) {
             while ( bam_itr_next ( fp, itr, line ) > 0 ) {
                 read_counter++;
                 double done = 100.0 * ( read_counter - skipped ) / read_counter;
-                fprintf ( stderr, "READ> %lld ( %.3f done ) actually in %s  #\r", read_counter, done, alias );
+                fprintf ( stderr, "READ> %lld : %s ( %.3f done ) actually in %s  #\r", read_counter, bam_get_qname ( line ), done, alias );
                 if ( read_counter % density != 0 ) {
                   skipped ++;
                   continue;
