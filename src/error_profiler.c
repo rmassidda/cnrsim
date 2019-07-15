@@ -1,4 +1,4 @@
-/*
+
  * CNRSIM
  * error_profiler.c
  * Given a BAM containing real reads
@@ -154,7 +154,7 @@ int main ( int argc, char ** argv ) {
     int min_index = 0;
     long long int read_counter = 0;
     long long int skipped = 0;
-    int density = 10000;
+    int density = 1;
 
     // Init pseudorandom generator
     srand ( time ( NULL ) );
