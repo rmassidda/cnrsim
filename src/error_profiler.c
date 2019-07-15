@@ -1,4 +1,4 @@
-
+/*
  * CNRSIM
  * error_profiler.c
  * Given a BAM containing real reads
