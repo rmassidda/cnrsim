@@ -1,4 +1,6 @@
 *.swp
+*.cfg
+times.txt
 *.o
 *.fa
 variator
