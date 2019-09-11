@@ -14,6 +14,9 @@ error: $(addprefix src/, ${ERROBJ})
 simulator: $(addprefix src/, ${SIMOBJ})
 	cc ${CFLAGS} -o $@ $^ ${LDFLAGS} 
 
-.PHONY: clean
+.PHONY: clean all
+
+all: variator error simulator
+
 clean:
 	-rm variator error simulator
