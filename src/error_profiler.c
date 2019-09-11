@@ -152,11 +152,14 @@ int main ( int argc, char ** argv ) {
     int min_score;
     int min_start = 0;
     int min_index = 0;
+    long long int read_counter = 0;
+    long long int skipped = 0;
+    int density = 1;
 
     // Init pseudorandom generator
     srand ( time ( NULL ) );
 
-    while ( ( opt = getopt ( argc, argv, "svm:i:t:d:" ) ) != -1 ) {
+    while ( ( opt = getopt ( argc, argv, "svm:i:t:d:p:" ) ) != -1 ) {
         switch ( opt ) {
         case 's':
             silent = true;
@@ -176,8 +179,11 @@ int main ( int argc, char ** argv ) {
         case 'd':
             dictionary = optarg;
             break;
+        case 'p':
+            density = atoi ( optarg );
+            break;
         case '?':
-            if ( optopt == 'd' || optopt == 'm' || optopt == 'i' || optopt == 't' )
+            if ( optopt == 'p' || optopt == 'd' || optopt == 'm' || optopt == 'i' || optopt == 't' )
                 fprintf ( stderr, "Option -%c requires an argument.\n", optopt );
             else if ( isprint ( optopt ) )
                 fprintf ( stderr, "Unknown option `-%c'.\n", optopt );
@@ -284,7 +290,15 @@ int main ( int argc, char ** argv ) {
         itr = bam_itr_querys ( index, hdr, alias );
         if ( itr != NULL ) {
             while ( bam_itr_next ( fp, itr, line ) > 0 ) {
-                if ( ( line->core.flag & 1 ) && ( line->core.flag & 2 ) ){
+                read_counter++;
+                double done = 100.0 * ( read_counter - skipped ) / read_counter;
+                fprintf ( stderr, "READ> %lld : %s ( %.3f done ) actually in %s  #\r", read_counter, bam_get_qname ( line ), done, alias );
+                if ( read_counter % density != 0 ) {
+                  skipped ++;
+                  continue;
+                }
+
+                if ( (( line->core.flag & 1 ) && ( line->core.flag & 2 )) || line->core.flag == 0 || line->core.flag == 16 ){
                   // Read information
                   pos = line->core.pos;
                   len = line->core.l_qseq;
@@ -292,16 +306,21 @@ int main ( int argc, char ** argv ) {
                   qual = bam_get_qual ( line ); // Quality score
                   curr_stats = ( line->core.flag & 64 ) ? model->single : model->pair;
                   curr_stats = ( line->core.flag & 128 ) ? model->pair : model->single;
+                  if ( line->core.flag == 0 || line->core.flag == 16 ) {
+                    curr_stats = model->single;
+                  }
                 }
                 else{
+                    skipped++;
                     continue;
                 }
 
-                if ( curr_stats == model->single && line->core.tid == line->core.mtid ) {
+                if ( curr_stats == model->single && ( line->core.tid == line->core.mtid || line->core.mtid == -1 ) ){
                   insert_size = line->core.mpos - ( pos + len );
                   insert_size = ( insert_size < 0 ) ? -insert_size : insert_size;
                   insert_size = ( insert_size < max_insert_size ) ? insert_size : max_insert_size; 
                   insert_size = ( insert_size * size_granularity ) / max_insert_size;
+                  insert_size = ( line->core.mtid == -1 ) ? 0 : insert_size;
                   source_update ( NULL, 0, 0, insert_size, model->insert_size );
                   orientation = ( line->core.flag & 48 ) >> 4;
                   source_update ( NULL, 0, 0, orientation, model->orientation );

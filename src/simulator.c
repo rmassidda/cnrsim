@@ -42,8 +42,9 @@ int main ( int argc, char ** argv ) {
     tandem_set_t * tandem = NULL;
     // Coverage
     int coverage;
-    int sequenced;
+    long sequenced;
     // Generation
+    bool single_only = true;
     int insert_size = 0;
     int orientation = 0;
     int length;
@@ -76,6 +77,9 @@ int main ( int argc, char ** argv ) {
     model = model_parse ( model_fp );
     fclose ( model_fp );
 
+    // Check if there are pair reads
+    single_only = ( model->pair->alignment->n == 0 );
+
     // Input sequences
     ploidy = argc - optind;
     fp = malloc ( sizeof ( gzFile ) * ploidy );
@@ -95,61 +99,65 @@ int main ( int argc, char ** argv ) {
     // Simulated read generation
     for ( int i = 0; i < ploidy; i ++ ){
         while ( kseq_read ( seq[i] ) >= 0 ) {
-            // Analysis of the repetitions in the original sequence
-            tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
-            tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
-            amplified_seq = realloc ( amplified_seq, sizeof ( char ) * ( seq[i]->seq.l * 2 ) );
-
+            // Sequence loaded
+            fprintf ( stderr, "%s\n", seq[i]->name.s );
             // Index for the FASTA sequence
-            int seq_p = 0;
+            long seq_p = 0;
             // Index for the amplified sequence
-            int aseq_p = 0;
-            // Statistics
-            int amp = 0;
-            int deamp = 0;
-            for ( int t = 0; t < tandem->n; t ++ ) {
-              unsigned char in = tandem->set[t].rep;
-              if ( in >= model->max_repetition ) {
-                continue;
-              }
-              int gap = tandem->set[t].pos - seq_p;
-              // Copy of the nucleotides between different tandems
-              if ( gap > 0 ) {
+            long aseq_p = 0;
+            // Analysis of the repetitions in the original sequence
+            if ( model->amplification->n != 0 ) {
+              tandem = tandem_set_init ( seq[i]->seq.l, model->max_motif, model->max_repetition, tandem );
+              tandem = tandem_set_analyze ( seq[i]->seq.s, seq[i]->seq.l, tandem );
+              amplified_seq = realloc ( amplified_seq, sizeof ( char ) * ( seq[i]->seq.l * 2 ) );
+
+              for ( int t = 0; t < tandem->n; t ++ ) {
+                unsigned char in = tandem->set[t].rep;
+                if ( in >= model->max_repetition ) {
+                  continue;
+                }
+                int gap = tandem->set[t].pos - seq_p;
+                // Copy of the nucleotides between different tandems
+                if ( gap > 0 ) {
+                  memcpy (
+                      &amplified_seq[aseq_p],
+                      &seq[i]->seq.s[seq_p],
+                      sizeof ( char ) * gap );
+                  aseq_p += gap; 
+                  seq_p += gap;
+                }
+                else if ( gap < 0 ) {
+                  fprintf ( stderr, "The tandem set isn't ordered.\n" );
+                  exit ( EXIT_FAILURE );
+                }
+                unsigned char out = source_generate (
+                    &in,
+                    1,
+                    tandem->set[t].pat,
+                    model->amplification );
+                int rep = out;
                 memcpy (
                     &amplified_seq[aseq_p],
                     &seq[i]->seq.s[seq_p],
-                    sizeof ( char ) * gap );
-                aseq_p += gap; 
-                seq_p += gap;
+                    sizeof ( char ) * rep * tandem->set[t].pat );
+                seq_p += ( tandem->set[t].rep * tandem->set[t].pat );
+                aseq_p += ( rep * tandem->set[t].pat );
               }
-              else if ( gap < 0 ) {
-                fprintf ( stderr, "The tandem set isn't ordered.\n" );
-                exit ( EXIT_FAILURE );
-              }
-              unsigned char out = source_generate (
-                  &in,
-                  1,
-                  tandem->set[t].pat,
-                  model->amplification );
-              ( in < out ) ? ++amp : ++deamp;
-              int rep = out;
+              // Copy of the remaining sequence
               memcpy (
                   &amplified_seq[aseq_p],
                   &seq[i]->seq.s[seq_p],
-                  sizeof ( char ) * rep * tandem->set[t].pat );
-              seq_p += ( tandem->set[t].rep * tandem->set[t].pat );
-              aseq_p += ( rep * tandem->set[t].pat );
+                  sizeof ( char ) * ( seq[i]->seq.l - seq_p ) );
+              aseq_p += ( seq[i]->seq.l - seq_p );
+              seq_p = seq[i]->seq.l;
+              amplified_seq[aseq_p] = '\0';
+              fprintf ( stderr, "\t(amplified):\t%ld\t%ld\t%.3f\n", aseq_p, seq_p, (aseq_p*100.0/seq_p));
             }
-            // Copy of the remaining sequence
-            memcpy (
-                &amplified_seq[aseq_p],
-                &seq[i]->seq.s[seq_p],
-                sizeof ( char ) * ( seq[i]->seq.l - seq_p ) );
-            aseq_p += ( seq[i]->seq.l - seq_p );
-            seq_p = seq[i]->seq.l;
-            amplified_seq[aseq_p] = '\0';
-            fprintf ( stderr, "%s\n", seq[i]->name.s );
-            fprintf ( stderr, "\t(amplified):\t%d\t%d\t%.3f\n", aseq_p, seq_p, (aseq_p*100.0/seq_p));
+            else {
+              seq_p = seq[i]->seq.l;
+              aseq_p = seq_p;
+              amplified_seq = seq[i]->seq.s;
+            }
 
             // Initial conditions
             sequenced = 0;
@@ -209,6 +217,7 @@ int main ( int argc, char ** argv ) {
 
                 // Change read-end
                 curr_end = ( curr_end == model->single ) ? model->pair : model->single;
+                curr_end = single_only ? model->single : curr_end;
               }
 
               // Update start position
@@ -218,8 +227,9 @@ int main ( int argc, char ** argv ) {
                 pos = 0;
                 curr_end = model->single;
               }
+              fprintf ( stderr, "\t(sequenced):\t%.3f%%\r", (100.0 * sequenced / aseq_p ));
             }
-            fprintf ( stderr, "\t(sequenced):\t%d\t%d\t%.3f\n", sequenced, aseq_p, (sequenced/aseq_p)*100.0);
+            fprintf ( stderr, "\t(sequenced):\t%ld\t%ld\t%.3f%%\n", sequenced, aseq_p, (100.0 * sequenced / aseq_p ));
         }
     }
 
